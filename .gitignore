@@ -1,0 +1,28 @@
+# Backend
+backend/.gradle/
+backend/build/
+backend/.env
+backend/uploads/
+*.class
+*.jar
+*.war
+
+# Frontend
+frontend/.next/
+frontend/node_modules/
+frontend/.env.local
+frontend/.env.production
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# OS
+Thumbs.db
