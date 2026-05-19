@@ -24,7 +24,7 @@ funcional en un teléfono con 3G, y gratuita para la institución.
 
 | Capa | Tecnología | Por qué |
 |------|-----------|---------|
-| Frontend | Next.js 16 + TypeScript strict + Tailwind v4 | App Router, server components, fuerte en el mercado mexicano junior |
+| Frontend | Vite 5 + React 18 (CDN) + Babel standalone | Prototipo de UI de alta fidelidad, sin build step local, iteración de diseño rápida |
 | Backend | Java 21 + Spring Boot 3 | Estándar empresarial, fuerte demanda laboral en México |
 | Base de datos | PostgreSQL + Flyway | Relacional, confiable, migraciones versionadas |
 | Auth | JWT + BCrypt + Spring Security | Sin dependencias externas, stateless |
@@ -54,19 +54,18 @@ aula/
 │       │   └── exception/       GlobalExceptionHandler → ApiError consistente
 │       └── resources/
 │           └── db/migration/    V1__init_schema.sql (schema completo)
-└── frontend/         Next.js 16 (App Router)
-    ├── app/
-    │   ├── (auth)/login/        Página de inicio de sesión
-    │   ├── (app)/
-    │   │   ├── layout.tsx       AppShell (requiere auth)
-    │   │   ├── admin/           Panel de administración
-    │   │   ├── teacher/         Espacio del docente
-    │   │   └── student/         Experiencia del alumno
-    ├── components/
-    │   ├── ui/                  Button, Input, Textarea, Select, Skeleton,
-    │   │                        EmptyState, ErrorMessage
-    │   └── layout/              AppShell, Sidebar, Providers
-    └── lib/                     api.ts, auth.tsx, query-client.ts, utils.ts
+└── frontend/         Prototipo de UI (Vite 5 — servidor estático)
+    ├── index.html               CSS completo, tokens de diseño, tema dark/light
+    ├── vite.config.mjs          Servidor en puerto 3000
+    └── public/                  Servido sin transformación (React vía CDN + Babel)
+        ├── app.jsx              Shell de la app + router de vistas
+        ├── components.jsx       Topbar, BottomNav, cards, modales, toasts
+        ├── views.jsx            Tablero, Cursos, Detalle de curso, Entrega de tarea
+        ├── views2.jsx           Calendario (mes/semana/agenda), Bandeja, Grupos
+        ├── views3.jsx           Historial, Ayuda, Cuenta
+        ├── data.jsx             Datos mock del prototipo
+        ├── icons.jsx            SVG icons inline
+        └── tweaks-panel.jsx     Panel de tweaks: tema, colores, densidad, variantes
 ```
 
 **Flujo de datos:** Controller → Service → Repository → Entity (Hibernate → PostgreSQL)
@@ -99,10 +98,10 @@ createdb aula
 
 ```bash
 cd frontend
-cp .env.example .env.local     # NEXT_PUBLIC_API_URL=http://localhost:8080
-npm install
+npm install      # instala Vite
 npm run dev
 # → http://localhost:3000
+# (prototipo de UI con datos mock — no requiere backend activo)
 ```
 
 ### Tests del backend
@@ -182,8 +181,8 @@ Las siguientes funcionalidades están en el schema pero pendientes de implementa
 
 - **100% español** en la UI — incluyendo mensajes de error y validación
 - **Mobile-first** — interfaz funcional desde 360px (muchos alumnos solo tienen un teléfono)
-- **Sin dark mode** — las escuelas públicas usan equipos con pantallas básicas; el alto contraste claro es más legible
-- **Sin frameworks de componentes** — Tailwind puro, componentes propios para control total del bundle y la accesibilidad
+- **Dark mode nativo** — toggle en el prototipo con paleta oscura completa; la decisión de activarlo en producción queda abierta según feedback de usuarios reales
+- **Sin frameworks de componentes** — CSS propio con tokens de diseño, componentes en React puro; control total del bundle y la accesibilidad
 - **StorageService como interfaz** — swap transparente a S3 sin cambiar ningún controller
 
 ---
