@@ -1,156 +1,139 @@
-# Aula — Sistema de Gestión de Aprendizaje
+# Aula — Open-Source LMS for Mexican Public Schools
 
-**Aula** es un LMS (Learning Management System) diseñado para escuelas públicas mexicanas —
-nivel secundaria, preparatoria y universidad pública — instituciones que hoy improvisan con
-WhatsApp, Google Classroom o Teams porque ninguna herramienta fue construida para su realidad:
-internet lento, docentes no técnicos, interfaz en español, y presupuesto cero.
+> A learning management system built for the schools that have been left out of the LMS market: Mexican public middle schools, high schools, and universities running on slow internet, non-technical teachers, and zero institutional budget.
 
----
-
-## El problema real
-
-Las escuelas públicas en México no tienen un sistema propio. Usan herramientas diseñadas para
-otra realidad: Canvas cuesta dinero y está en inglés, Teams requiere infraestructura de Office 365,
-Google Classroom no se adapta a la estructura académica local (grupos, materias, semestres).
-El resultado: docentes que administran tareas por WhatsApp, calificaciones en hojas de Excel, y
-alumnos sin visibilidad de su progreso.
-
-**Aula** nace para ser esa herramienta nativa: española, liviana, simple para un docente de 55 años,
-funcional en un teléfono con 3G, y gratuita para la institución.
+**Status:** Work in progress — core API working, full feature roadmap in active development.
 
 ---
 
-## Stack tecnológico
+## The Problem
 
-| Capa | Tecnología | Por qué |
-|------|-----------|---------|
-| Frontend | Vite 5 + React 18 (CDN) + Babel standalone | Prototipo de UI de alta fidelidad, sin build step local, iteración de diseño rápida |
-| Backend | Java 21 + Spring Boot 3 | Estándar empresarial, fuerte demanda laboral en México |
-| Base de datos | PostgreSQL + Flyway | Relacional, confiable, migraciones versionadas |
-| Auth | JWT + BCrypt + Spring Security | Sin dependencias externas, stateless |
-| API | REST + OpenAPI/Swagger | Documentación en vivo en `/swagger-ui.html` |
-| Storage | Interfaz `StorageService` + impl local (S3-ready) | Swap transparente en producción |
-| Deploy | Railway (backend) + Vercel (frontend) | Gratis para prototipos, fácil CI/CD |
+Public schools in Mexico don't have their own platform. They improvise with WhatsApp, Google Classroom, or Teams — tools designed for a different reality:
+
+- **Canvas** costs money and is in English.
+- **Microsoft Teams** assumes Office 365 infrastructure that public schools don't have.
+- **Google Classroom** doesn't fit local academic structure (grupos, materias, semestres).
+
+The result: teachers managing assignments over WhatsApp, grades in Excel sheets, and students with no real visibility into their own progress.
+
+**Aula** is being built to be the missing native tool — **in Spanish, lightweight, simple enough for a 55-year-old teacher, usable on a 3G phone, and free for the institution.**
 
 ---
 
-## Arquitectura
+## Stack
+
+| Layer | Tech | Why |
+|---|---|---|
+| Frontend | Vite 5 + React 18 (CDN) + Babel standalone | High-fidelity UI prototype with no local build step; fast design iteration |
+| Backend | Java 21 + Spring Boot 3 | Enterprise standard, strong hiring market in Mexico |
+| Database | PostgreSQL + Flyway | Relational, reliable, versioned migrations |
+| Auth | JWT + BCrypt + Spring Security | Stateless, no external dependencies |
+| API | REST + OpenAPI / Swagger | Live docs at `/swagger-ui.html` |
+| Storage | `StorageService` interface + local impl (S3-ready) | Transparent swap in production |
+| Deploy | Railway (backend) + Vercel (frontend) | Free for prototypes, easy CI/CD |
+
+---
+
+## Architecture
 
 ```
 aula/
-├── backend/          Spring Boot 3 (Gradle)
-│   └── src/
-│       ├── main/java/mx/aula/backend/
-│       │   ├── config/          SecurityConfig, OpenApiConfig
-│       │   ├── controller/      AuthController, AdminController, GrupoController,
-│       │   │                    AssignmentController, SubmissionController,
-│       │   │                    GradeController, DashboardController
-│       │   ├── service/         Lógica de negocio + StorageService (interface)
-│       │   ├── repository/      Spring Data JPA
-│       │   ├── entity/          User, Grupo, Membership, Assignment,
-│       │   │                    Submission, Grade, GradeHistory
-│       │   ├── dto/             Records Java — entrada/salida de la API
-│       │   ├── security/        JWT filter, UserPrincipal, JwtTokenProvider
-│       │   └── exception/       GlobalExceptionHandler → ApiError consistente
-│       └── resources/
-│           └── db/migration/    V1__init_schema.sql (schema completo)
-└── frontend/         Prototipo de UI (Vite 5 — servidor estático)
-    ├── index.html               CSS completo, tokens de diseño, tema dark/light
-    ├── vite.config.mjs          Servidor en puerto 3000
-    └── public/                  Servido sin transformación (React vía CDN + Babel)
-        ├── app.jsx              Shell de la app + router de vistas
-        ├── components.jsx       Topbar, BottomNav, cards, modales, toasts
-        ├── views.jsx            Tablero, Cursos, Detalle de curso, Entrega de tarea
-        ├── views2.jsx           Calendario (mes/semana/agenda), Bandeja, Grupos
-        ├── views3.jsx           Historial, Ayuda, Cuenta
-        ├── data.jsx             Datos mock del prototipo
-        ├── icons.jsx            SVG icons inline
-        └── tweaks-panel.jsx     Panel de tweaks: tema, colores, densidad, variantes
+├── backend/                            Spring Boot 3 (Gradle)
+│   └── src/main/java/mx/aula/backend/
+│       ├── config/                     SecurityConfig, OpenApiConfig
+│       ├── controller/                 Auth, Admin, Grupo, Assignment,
+│       │                               Submission, Grade, Dashboard
+│       ├── service/                    Business logic + StorageService
+│       ├── repository/                 Spring Data JPA
+│       ├── entity/                     User, Grupo, Membership, Assignment,
+│       │                               Submission, Grade, GradeHistory
+│       ├── dto/                        Java records — API in/out
+│       ├── security/                   JWT filter, UserPrincipal, TokenProvider
+│       └── exception/                  GlobalExceptionHandler → ApiError
+│   └── resources/db/migration/         V1__init_schema.sql
+└── frontend/                           UI prototype (Vite 5 — static server)
+    ├── index.html                      Full CSS, design tokens, dark/light theme
+    └── public/                         React via CDN + Babel (no transform)
+        ├── app.jsx                     App shell + view router
+        ├── components.jsx              Topbar, BottomNav, cards, modals, toasts
+        ├── views*.jsx                  Dashboard, Courses, Assignments,
+        │                               Calendar, Inbox, Groups, History, Help
+        └── tweaks-panel.jsx            Live theme / density / variant panel
 ```
 
-**Flujo de datos:** Controller → Service → Repository → Entity (Hibernate → PostgreSQL)
-**API boundary:** DTOs en todos los endpoints, nunca se exponen entidades JPA directamente.
+**Data flow:** Controller → Service → Repository → Entity (Hibernate → PostgreSQL).
+**API boundary:** DTOs on every endpoint — JPA entities are never exposed directly.
 
 ---
 
-## Cómo correr localmente
+## Run it locally
 
-### Requisitos
-- Java 21 (`/opt/homebrew/opt/openjdk@21` si usas macOS con Homebrew)
-- Node.js 18+
-- PostgreSQL 14+
+**Requirements:** Java 21, Node.js 18+, PostgreSQL 14+
 
-### Backend
-
+**Backend**
 ```bash
 cd backend
-cp .env.example .env          # configura DB_URL, DB_USER, DB_PASSWORD, JWT_SECRET
-
-# Crea la base de datos
+cp .env.example .env          # set DB_URL, DB_USER, DB_PASSWORD, JWT_SECRET
 createdb aula
-
 ./gradlew bootRun
 # → http://localhost:8080
 # → Swagger UI: http://localhost:8080/swagger-ui.html
 ```
 
-### Frontend
-
+**Frontend**
 ```bash
 cd frontend
-npm install      # instala Vite
+npm install
 npm run dev
-# → http://localhost:3000
-# (prototipo de UI con datos mock — no requiere backend activo)
+# → http://localhost:3000  (UI prototype with mock data — no backend required)
 ```
 
-### Tests del backend
-
+**Tests**
 ```bash
 cd backend
 ./gradlew test
-# 10 tests — AuthService y GradeService
+# 10 tests covering AuthService and GradeService
 ```
 
 ---
 
-## Flujo del CORE (probado en Swagger)
+## Core flow (verifiable in Swagger)
 
-1. **Admin crea usuarios** → `POST /api/admin/users`
-2. **Admin crea grupo** → `POST /api/admin/grupos`
-3. **Admin inscribe alumnos** → `POST /api/admin/grupos/{id}/enroll`
-4. **Docente crea tarea** → `POST /api/grupos/{grupoId}/assignments`
-5. **Alumno entrega** → `POST /api/assignments/{id}/submit`
-6. **Docente califica** → `POST /api/submissions/{id}/grade`
-7. **Alumno ve calificación** → `GET /api/assignments/{id}/my-submission`
-8. **Dashboard del alumno** → `GET /api/student/dashboard`
-
----
-
-## Roles y permisos
-
-| Endpoint prefix | Acceso |
-|----------------|--------|
-| `POST /api/auth/login` | Público |
-| `/api/admin/**` | Solo ADMIN |
-| `/api/grupos/**` | TEACHER (sus grupos), STUDENT (inscripciones) |
-| `/api/assignments/**` | TEACHER (crear/editar), STUDENT (ver/entregar) |
-| `/api/submissions/**` | TEACHER (ver todas), STUDENT (solo la propia) |
-| `/api/student/**` | Solo STUDENT |
+1. Admin creates users → `POST /api/admin/users`
+2. Admin creates a grupo → `POST /api/admin/grupos`
+3. Admin enrolls students → `POST /api/admin/grupos/{id}/enroll`
+4. Teacher creates assignment → `POST /api/grupos/{grupoId}/assignments`
+5. Student submits → `POST /api/assignments/{id}/submit`
+6. Teacher grades → `POST /api/submissions/{id}/grade`
+7. Student sees grade → `GET /api/assignments/{id}/my-submission`
+8. Student dashboard → `GET /api/student/dashboard`
 
 ---
 
-## Schema de base de datos (resumen)
+## Roles & permissions
 
-Diseñado para la visión completa desde fase 1:
+| Endpoint prefix | Access |
+|---|---|
+| `POST /api/auth/login` | Public |
+| `/api/admin/**` | ADMIN only |
+| `/api/grupos/**` | TEACHER (own grupos), STUDENT (enrolled) |
+| `/api/assignments/**` | TEACHER (create/edit), STUDENT (view/submit) |
+| `/api/submissions/**` | TEACHER (all), STUDENT (own only) |
+| `/api/student/**` | STUDENT only |
+
+---
+
+## Database schema (overview)
+
+Designed for the full vision from day one, even though only the core is built:
 
 ```
 users ← grupos (teacher_id)
       ← memberships (student_id, grupo_id)
 grupos ← modules ← assignments ← submissions ← grades → grade_history
-                                               (audit)
+                                              (audit trail)
 grupos ← announcements
-users ← notifications
+users  ← notifications
 grupos ← attendance_sessions ← attendance_records
 grupos ← quizzes ← quiz_questions ← quiz_options ← quiz_attempts ← quiz_answers
 grupos ← pages
@@ -159,32 +142,34 @@ grupos ← file_attachments
 
 ---
 
-## Roadmap (no construido aún — decisiones deliberadas de alcance)
+## Roadmap
 
-Las siguientes funcionalidades están en el schema pero pendientes de implementar:
+Schema is ready; these are deliberate scope decisions, not oversights:
 
-- **Módulos Canvas-style** — organizar tareas/páginas en unidades ordenadas
-- **Quizzes con autocorrección** — banco de preguntas, opción múltiple + respuesta corta
-- **Asistencia por sesión** — registro de presencia por clase
-- **Anuncios y mensajería** — comunicación dentro del grupo
-- **Calendario unificado** — todas las fechas de entrega en vista de calendario
-- **Importación CSV** — alta masiva de alumnos para incorporación de escuelas completas
-- **Multi-institución (tenancy)** — una instancia para múltiples escuelas
-- **Calificador con historial** — auditoría completa de cambios en calificaciones
-- **Notificaciones por email** — actualmente solo in-app
-- **PWA / modo offline** — fundamental para zonas con conectividad intermitente
-- **Análisis institucional** — dashboard de admin con métricas de rendimiento
-
----
-
-## Decisiones de diseño
-
-- **100% español** en la UI — incluyendo mensajes de error y validación
-- **Mobile-first** — interfaz funcional desde 360px (muchos alumnos solo tienen un teléfono)
-- **Dark mode nativo** — toggle en el prototipo con paleta oscura completa; la decisión de activarlo en producción queda abierta según feedback de usuarios reales
-- **Sin frameworks de componentes** — CSS propio con tokens de diseño, componentes en React puro; control total del bundle y la accesibilidad
-- **StorageService como interfaz** — swap transparente a S3 sin cambiar ningún controller
+- [ ] Canvas-style modules (ordered units of assignments/pages)
+- [ ] Auto-graded quizzes (multiple choice + short answer)
+- [ ] Session-based attendance tracking
+- [ ] In-grupo announcements and messaging
+- [ ] Unified calendar across all grupos
+- [ ] CSV import for bulk student enrollment
+- [ ] Multi-tenancy (one instance, many schools)
+- [ ] Full grade history / audit trail
+- [ ] Email notifications (currently in-app only)
+- [ ] PWA / offline mode (essential for spotty connectivity)
+- [ ] Institutional analytics dashboard
 
 ---
 
-*Construido por Santiago Arias — Tec de Monterrey*
+## Design decisions
+
+- **100% Spanish UI** — including error messages and validation
+- **Mobile-first** — usable from 360px because many students only have a phone
+- **Native dark mode** — full dark palette in the prototype; the call to ship it in production stays open pending real-user feedback
+- **No component frameworks** — own CSS with design tokens, pure React components; full control of bundle size and accessibility
+- **`StorageService` as an interface** — transparent swap to S3 in production without changing any controller
+
+---
+
+## License
+
+MIT — built by [Santiago Arias](https://github.com/SantiagoArias07) · Tec de Monterrey.
