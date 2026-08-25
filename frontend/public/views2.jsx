@@ -33,7 +33,7 @@ function VistaTarea({ tareaId, goBack, onSubmit }) {
     <div className="view">
       <a className="btn btn-ghost" onClick={goBack} style={{ marginBottom: 16, padding: '6px 10px', marginLeft: -10 }}><IconArrowL size={14} />Volver al curso</a>
 
-      <div className="grid" style={{ gridTemplateColumns: '1.6fr 1fr', gap: 24 }}>
+      <div className="grid stack-sm" style={{ gridTemplateColumns: '1.6fr 1fr', gap: 24 }}>
         {/* Left: Submission */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
@@ -319,7 +319,7 @@ function VistaCalendario({ tw, openCurso }) {
       />
 
       {vista === 'mes' && (
-        <div className="grid" style={{ gridTemplateColumns: '1fr 320px', gap: 20 }}>
+        <div className="grid stack-sm" style={{ gridTemplateColumns: '1fr 320px', gap: 20 }}>
           <div className="card card-flush">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--line)' }}>
               {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(d => (

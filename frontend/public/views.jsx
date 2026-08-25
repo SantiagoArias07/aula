@@ -31,7 +31,7 @@ function VistaTablero({ setRoute, openCurso, tw }) {
         </h1>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: '1.4fr 1fr', gap: 20, marginBottom: 20 }}>
+      <div className="grid stack-sm" style={{ gridTemplateColumns: '1.4fr 1fr', gap: 20, marginBottom: 20 }}>
         {/* Esta semana panel */}
         <div className="card card-lg">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 }}>
@@ -222,7 +222,7 @@ function VistaCursoDetalle({ cursoId, goBack, openTarea }) {
 
       {/* Hero */}
       <div className="card card-flush" style={{ marginBottom: 24 }}>
-        <div className={c.color} style={{ padding: '40px 36px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <div className={c.color + ' hero-wrap-sm'} style={{ padding: '40px 36px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <div>
             <div className="mono" style={{ fontSize: 12, color: 'var(--ink)', opacity: 0.7 }}>{c.clave} · GRUPO {c.grupo}</div>
             <h1 className="display" style={{ fontSize: 'clamp(40px, 4.5vw, 60px)', margin: '6px 0 0', color: 'var(--ink)' }}>{c.nombre}</h1>
@@ -247,7 +247,7 @@ function VistaCursoDetalle({ cursoId, goBack, openTarea }) {
       </div>
 
       {tab === 'resumen' && (
-        <div className="grid" style={{ gridTemplateColumns: '1.6fr 1fr', gap: 20 }}>
+        <div className="grid stack-sm" style={{ gridTemplateColumns: '1.6fr 1fr', gap: 20 }}>
           <div className="card card-lg">
             <div className="eyebrow">Acerca del curso</div>
             <p style={{ fontFamily: 'var(--font-serif)', fontSize: 22, lineHeight: 1.45, marginTop: 10, color: 'var(--ink-2)' }}>
@@ -359,7 +359,7 @@ function VistaCursoDetalle({ cursoId, goBack, openTarea }) {
             </div>
           </div>
           {entregadas.map(e => (
-            <div key={e.id} style={{ display: 'grid', gridTemplateColumns: '1fr 90px 90px 100px', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid var(--line)', gap: 16 }}>
+            <div key={e.id} className="stack-sm" style={{ display: 'grid', gridTemplateColumns: '1fr 90px 90px 100px', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid var(--line)', gap: 16 }}>
               <div>
                 <div style={{ fontSize: 14.5, fontWeight: 500 }}>{e.titulo}</div>
                 <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>Entregado el {e.fecha}{e.retro && ' · con retroalimentación'}</div>

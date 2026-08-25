@@ -50,7 +50,7 @@ function VistaBandeja({ tw }) {
         right={<button className="btn btn-primary"><IconPlus size={14} />Nuevo mensaje</button>}
       />
 
-      <div className="card card-flush" style={{ display: 'grid', gridTemplateColumns: '340px 1fr', height: 'calc(100vh - 280px)', minHeight: 540, overflow: 'hidden' }}>
+      <div className="card card-flush stack-sm h-auto-sm" style={{ display: 'grid', gridTemplateColumns: '340px 1fr', height: 'calc(100vh - 280px)', minHeight: 540, overflow: 'hidden' }}>
         {/* Sidebar */}
         <div style={{ borderRight: '1px solid var(--line)', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -177,7 +177,7 @@ function VistaHistorial() {
         right={<button className="btn btn-secondary"><IconFilter size={14} />Filtrar</button>}
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 32 }}>
+      <div className="stack-sm" style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 32 }}>
         <div style={{ position: 'relative', paddingLeft: 30 }}>
           {/* Vertical line */}
           <div style={{ position: 'absolute', left: 9, top: 14, bottom: 14, width: 1, background: 'var(--line)' }}></div>
@@ -250,7 +250,7 @@ function VistaAyuda() {
         subtitle="Respuestas rápidas a lo que más se pregunta. Si no encuentras lo tuyo, escríbenos."
       />
 
-      <div className="grid" style={{ gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 32 }}>
+      <div className="grid stack-sm" style={{ gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 32 }}>
         {[
           { ic: <IconPaper size={18} />, t: 'Empezar en Aula', d: 'Tu primer día: qué hacer y qué no' },
           { ic: <IconUpload size={18} />, t: 'Entregar tareas', d: 'Subir archivos, borradores y entregas tardías' },
@@ -267,7 +267,7 @@ function VistaAyuda() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 24 }}>
+      <div className="stack-sm" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 24 }}>
         <div>
           <div className="eyebrow" style={{ marginBottom: 14 }}>Preguntas frecuentes</div>
           <div className="card card-flush">
@@ -347,7 +347,7 @@ function VistaCuenta() {
       </div>
 
       {tab === 'perfil' && (
-        <div className="grid" style={{ gridTemplateColumns: '320px 1fr', gap: 24 }}>
+        <div className="grid stack-sm" style={{ gridTemplateColumns: '320px 1fr', gap: 24 }}>
           <div className="card card-lg" style={{ textAlign: 'center' }}>
             <div style={{
               width: 120, height: 120, borderRadius: 999, margin: '0 auto 16px',
@@ -368,7 +368,7 @@ function VistaCuenta() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="card card-lg">
               <div className="eyebrow" style={{ marginBottom: 18 }}>Información personal</div>
-              <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 18 }}>
+              <div className="grid stack-sm" style={{ gridTemplateColumns: '1fr 1fr', gap: 18 }}>
                 <KvField label="Nombre(s)" value={USER.nombre} />
                 <KvField label="Apellidos" value={USER.apellido} />
                 <KvField label="Correo institucional" value={USER.email} />
@@ -382,7 +382,7 @@ function VistaCuenta() {
                 <div className="eyebrow">Resumen académico</div>
                 <a style={{ fontSize: 12.5, color: 'var(--muted)' }}>Solicitar constancia →</a>
               </div>
-              <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
+              <div className="grid stack-sm" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
                 <Stat2 label="Promedio" value={USER.promedio} />
                 <Stat2 label="Créditos" value={`${USER.creditosCursados} / ${USER.creditosTotales}`} small />
                 <Stat2 label="Avance" value={`${Math.round(USER.creditosCursados / USER.creditosTotales * 100)}%`} />

@@ -10,7 +10,8 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "density": "comfy",
   "cursosVariant": "cards",
   "calVariant": "mes",
-  "showDemoFlow": false
+  "showDemoFlow": false,
+  "offline": false
 }/*EDITMODE-END*/;
 
 const PRIMARY_OPTIONS = ['#5b3fdb', '#2a6fdb', '#b8442e', '#1f8f5b'];
@@ -23,6 +24,7 @@ function App() {
   const [tareaId, setTareaId] = aState(null);
   const [grupoId, setGrupoId] = aState(null);
   const [toast, toastNode] = useToast();
+  const [cmdkOpen, setCmdkOpen] = aState(false);
 
   // Apply theme & tweaks
   aEffect(() => {
@@ -37,11 +39,55 @@ function App() {
     document.body.style.fontSize = (15 * t.fontScale) + 'px';
   }, [t.dark, t.primary, t.accent, t.fontScale]);
 
+  // Atajos globales: ⌘K / Ctrl+K (o "/") abren la paleta de búsqueda
+  aEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault(); setCmdkOpen(v => !v);
+      } else if (e.key === '/' && !/^(input|textarea)$/i.test(e.target.tagName) && !e.target.isContentEditable) {
+        e.preventDefault(); setCmdkOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   // Routing helpers
   const openCurso = (id) => { setCursoId(id); setRoute('curso'); window.scrollTo(0, 0); };
   const openTarea = (id) => { setTareaId(id); setRoute('tarea'); window.scrollTo(0, 0); };
   const openGrupo = (id) => { setGrupoId(id); setRoute('grupos'); window.scrollTo(0, 0); };
   const back = (to) => { setRoute(to); window.scrollTo(0, 0); };
+  const go = (r) => { setRoute(r); window.scrollTo(0, 0); };
+
+  // Comandos para la paleta ⌘K: navegación + cursos + tareas + acciones
+  const cmdkActions = aMemo(() => {
+    const nav = [
+      ...NAV,
+      { id: 'ayuda', label: 'Ayuda', Icon: IconAyuda },
+      { id: 'cuenta', label: 'Mi cuenta', Icon: IconCuenta },
+    ].map(n => ({ id: 'nav-' + n.id, group: 'Ir a', label: n.label, icon: n.Icon, run: () => go(n.id) }));
+
+    const cursos = CURSOS.map(c => ({
+      id: 'curso-' + c.id, group: 'Cursos', label: c.nombre,
+      sub: `${c.clave} · ${c.docente}`, curso: c, run: () => openCurso(c.id),
+    }));
+
+    const tareas = TAREAS.map(t => {
+      const c = courseOf(t.curso);
+      return {
+        id: 'tarea-' + t.id, group: 'Tareas y entregas', label: t.titulo,
+        sub: `${c.nombre} · vence ${t.vence}`, curso: c, run: () => openTarea(t.id),
+      };
+    });
+
+    const acciones = [
+      { id: 'act-tema', group: 'Acciones', label: `Cambiar a modo ${t.dark ? 'claro' : 'oscuro'}`, icon: IconSettings, run: () => setTweak('dark', !t.dark) },
+      { id: 'act-semana', group: 'Acciones', label: 'Ver mi semana en el calendario', icon: IconCalendario, run: () => { go('calendario'); setTweak('calVariant', 'semana'); } },
+      { id: 'act-offline', group: 'Acciones', label: t.offline ? 'Volver a estar en línea' : 'Simular sin conexión', icon: t.offline ? IconWifi : IconWifiOff, run: () => setTweak('offline', !t.offline) },
+    ];
+
+    return [...nav, ...cursos, ...tareas, ...acciones];
+  }, [t.dark, t.offline]);
 
   const renderRoute = () => {
     switch (route) {
@@ -66,12 +112,20 @@ function App() {
 
   return (
     <div className="app">
-      <Topbar route={navRoute} setRoute={(r) => { setRoute(r); window.scrollTo(0, 0); }} online={!t.dark || true} />
+      {t.offline && (
+        <div className="offline-banner">
+          <IconWifiOff size={14} />
+          Sin conexión · sigues trabajando con lo descargado. Tus entregas se sincronizan al volver la señal.
+        </div>
+      )}
+      <Topbar route={navRoute} setRoute={(r) => { setRoute(r); window.scrollTo(0, 0); }}
+              onOpenSearch={() => setCmdkOpen(true)} online={!t.offline} />
       <main className="main" key={route + (cursoId || '') + (tareaId || '')}>
         {renderRoute()}
       </main>
       <BottomNav route={navRoute} setRoute={setRoute} />
       {toastNode}
+      {cmdkOpen && <CommandPalette actions={cmdkActions} onClose={() => setCmdkOpen(false)} />}
 
       <TweaksPanel title="Tweaks · Aula">
         <TweakSection label="Tema" />
@@ -84,7 +138,11 @@ function App() {
         <TweakRadio label="Cursos" value={t.cursosVariant} options={['cards', 'lista']} onChange={v => setTweak('cursosVariant', v)} />
         <TweakRadio label="Calendario" value={t.calVariant} options={['mes', 'semana', 'agenda']} onChange={v => setTweak('calVariant', v)} />
 
+        <TweakSection label="Conexión" />
+        <TweakToggle label="Simular sin conexión" value={t.offline} onChange={v => setTweak('offline', v)} />
+
         <TweakSection label="Atajos · flujo demo" />
+        <TweakButton label="Buscar · paleta ⌘K" onClick={() => setCmdkOpen(true)} />
         <TweakButton label="Tablero" onClick={() => setRoute('tablero')} />
         <TweakButton label="Abrir Cálculo Integral" onClick={() => openCurso('mat')} />
         <TweakButton label="Entregar tarea (problema 14)" onClick={() => openTarea('t1')} />

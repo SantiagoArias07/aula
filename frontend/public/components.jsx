@@ -15,7 +15,7 @@ const NAV = [
   { id: "historial",  label: "Historial",  Icon: IconHistorial },
 ];
 
-function Topbar({ route, setRoute, onAvatar, onBell, online = true }) {
+function Topbar({ route, setRoute, onOpenSearch, online = true }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
   return (
@@ -34,11 +34,14 @@ function Topbar({ route, setRoute, onAvatar, onBell, online = true }) {
           ))}
         </nav>
         <div className="nav-spacer" />
-        <div className="search" onClick={() => alert('Búsqueda: pronto')}>
+        <div className="search" onClick={onOpenSearch}>
           <IconSearch size={14} />
           <span>Buscar…</span>
           <span className="kbd">⌘K</span>
         </div>
+        <button className="icon-btn show-sm" onClick={onOpenSearch} aria-label="Buscar">
+          <IconSearch size={18} />
+        </button>
         <div style={{ position: 'relative' }}>
           <button className="icon-btn" onClick={() => setNotifOpen(v => !v)} aria-label="Notificaciones">
             <IconBell size={18} />
@@ -46,7 +49,7 @@ function Topbar({ route, setRoute, onAvatar, onBell, online = true }) {
           </button>
           {notifOpen && <NotifPopover onClose={() => setNotifOpen(false)} />}
         </div>
-        <a className="nav-link" onClick={() => setRoute('ayuda')} aria-current={route === 'ayuda' ? 'page' : undefined}>Ayuda</a>
+        <a className="nav-link nav-ayuda" onClick={() => setRoute('ayuda')} aria-current={route === 'ayuda' ? 'page' : undefined}>Ayuda</a>
         <div style={{ position: 'relative' }}>
           <button onClick={() => setAvatarOpen(v => !v)} style={{ border: 0, padding: 0, background: 'transparent', cursor: 'default' }} aria-label="Cuenta">
             <span className="avatar">{USER.iniciales}</span>
@@ -285,7 +288,99 @@ function useToast() {
   return [show, node];
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// Command palette (⌘K) — busca cursos, tareas y navega a cualquier vista
+// ─────────────────────────────────────────────────────────────────────
+
+function CommandPalette({ actions, onClose }) {
+  const [q, setQ] = useState('');
+  const [active, setActive] = useState(0);
+  const inputRef = useRef();
+  const listRef = useRef();
+
+  useEffect(() => { inputRef.current && inputRef.current.focus(); }, []);
+
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return actions;
+    // match por palabras: todas las palabras deben aparecer en el texto del comando
+    const terms = s.split(/\s+/);
+    return actions.filter(a => {
+      const hay = (a.label + ' ' + (a.sub || '') + ' ' + a.group).toLowerCase();
+      return terms.every(t => hay.includes(t));
+    });
+  }, [q, actions]);
+
+  useEffect(() => { setActive(0); }, [q]);
+  useEffect(() => {
+    const el = listRef.current && listRef.current.querySelector('[data-active="1"]');
+    if (el) el.scrollIntoView({ block: 'nearest' });
+  }, [active]);
+
+  // Agrupa preservando el orden de aparición y guarda el índice plano para el teclado
+  const groups = useMemo(() => {
+    const order = [], map = {};
+    filtered.forEach((a, i) => {
+      if (!map[a.group]) { map[a.group] = []; order.push(a.group); }
+      map[a.group].push({ ...a, _i: i });
+    });
+    return order.map(g => [g, map[g]]);
+  }, [filtered]);
+
+  const run = (a) => { onClose(); setTimeout(() => a.run(), 0); };
+
+  const onKeyDown = (e) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActive(i => Math.min(filtered.length - 1, i + 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(i => Math.max(0, i - 1)); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (filtered[active]) run(filtered[active]); }
+    else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
+  };
+
+  return (
+    <div className="cmdk-backdrop" onClick={onClose}>
+      <div className="cmdk" role="dialog" aria-label="Buscar en Aula" onClick={e => e.stopPropagation()} onKeyDown={onKeyDown}>
+        <div className="cmdk-top">
+          <IconSearch size={18} />
+          <input ref={inputRef} className="cmdk-input" value={q} onChange={e => setQ(e.target.value)}
+                 placeholder="Buscar cursos, tareas, o ir a…" aria-label="Buscar" />
+          <span className="cmdk-kbd">esc</span>
+        </div>
+        <div className="cmdk-list" ref={listRef}>
+          {filtered.length === 0 ? (
+            <div className="cmdk-empty">Nada coincide con &ldquo;{q}&rdquo;.</div>
+          ) : groups.map(([g, items]) => (
+            <div key={g}>
+              <div className="cmdk-group">{g}</div>
+              {items.map(a => {
+                const Ic = a.icon;
+                return (
+                  <div key={a.id} className="cmdk-item" data-active={a._i === active ? '1' : '0'}
+                       onMouseMove={() => setActive(a._i)} onClick={() => run(a)}>
+                    {a.curso
+                      ? <CourseGlyph curso={a.curso} size={34} radius={9} />
+                      : <span className="cmdk-ic">{Ic ? <Ic size={17} /> : <Sparkle size={16} />}</span>}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="truncate" style={{ fontSize: 14, fontWeight: 500 }}>{a.label}</div>
+                      {a.sub && <div className="truncate" style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>{a.sub}</div>}
+                    </div>
+                    <IconArrow size={14} style={{ color: 'var(--faint)' }} />
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+        <div className="cmdk-foot">
+          <span><span className="cmdk-kbd">↑</span> <span className="cmdk-kbd">↓</span> navegar</span>
+          <span><span className="cmdk-kbd">↵</span> abrir</span>
+          <span><span className="cmdk-kbd">esc</span> cerrar</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 Object.assign(window, {
   Topbar, BottomNav, CourseGlyph, SectionTitle, LoadGauge, Progress,
-  EmptyState, courseOf, UrgenciaPill, useToast, NAV,
+  EmptyState, courseOf, UrgenciaPill, useToast, NAV, CommandPalette,
 });
