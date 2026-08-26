@@ -1,4 +1,4 @@
-// app.jsx — main app shell, router, tweaks panel mount
+// app.jsx — shell, router de vistas, paleta ⌘K, panel de tweaks
 
 const { useState: aState, useEffect: aEffect, useMemo: aMemo } = React;
 
@@ -7,39 +7,33 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "primary": "#5b3fdb",
   "accent": "#1f8f5b",
   "fontScale": 1,
-  "density": "comfy",
-  "cursosVariant": "cards",
-  "calVariant": "mes",
-  "showDemoFlow": false,
   "offline": false
 }/*EDITMODE-END*/;
 
-const PRIMARY_OPTIONS = ['#5b3fdb', '#2a6fdb', '#b8442e', '#1f8f5b'];
+const PRIMARY_OPTIONS = ['#5b3fdb', '#2a6fdb', '#1f8f5b', '#c0562f'];
 const ACCENT_OPTIONS  = ['#1f8f5b', '#c47a1e', '#5b3fdb', '#2a6fdb'];
 
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-  const [route, setRoute] = aState('tablero');
-  const [cursoId, setCursoId] = aState(null);
-  const [tareaId, setTareaId] = aState(null);
-  const [grupoId, setGrupoId] = aState(null);
+  const [route, setRoute] = aState('inicio');
+  const [skillId, setSkillId] = aState(ESTUDIANTE.siguienteSkillId);
+  const [practicaVolver, setPracticaVolver] = aState('ruta');
   const [toast, toastNode] = useToast();
   const [cmdkOpen, setCmdkOpen] = aState(false);
 
-  // Apply theme & tweaks
+  // Tema + tweaks
   aEffect(() => {
     document.documentElement.setAttribute('data-theme', t.dark ? 'dark' : 'light');
     const root = document.documentElement;
     root.style.setProperty('--primary', t.primary);
-    // Derive primary-soft (semi-transparent tint of primary)
-    root.style.setProperty('--primary-soft', hexToRgba(t.primary, t.dark ? 0.18 : 0.12));
+    root.style.setProperty('--primary-soft', hexToRgba(t.primary, t.dark ? 0.20 : 0.12));
     root.style.setProperty('--primary-ink', t.dark ? lighten(t.primary, 0.3) : darken(t.primary, 0.35));
     root.style.setProperty('--accent', t.accent);
     root.style.setProperty('--accent-soft', hexToRgba(t.accent, t.dark ? 0.18 : 0.16));
     document.body.style.fontSize = (15 * t.fontScale) + 'px';
   }, [t.dark, t.primary, t.accent, t.fontScale]);
 
-  // Atajos globales: ⌘K / Ctrl+K (o "/") abren la paleta de búsqueda
+  // Atajos globales: ⌘K / Ctrl+K (o "/") abren la paleta
   aEffect(() => {
     const onKey = (e) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
@@ -52,78 +46,73 @@ function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  // Routing helpers
-  const openCurso = (id) => { setCursoId(id); setRoute('curso'); window.scrollTo(0, 0); };
-  const openTarea = (id) => { setTareaId(id); setRoute('tarea'); window.scrollTo(0, 0); };
-  const openGrupo = (id) => { setGrupoId(id); setRoute('grupos'); window.scrollTo(0, 0); };
-  const back = (to) => { setRoute(to); window.scrollTo(0, 0); };
+  // Navegación
   const go = (r) => { setRoute(r); window.scrollTo(0, 0); };
+  const openSkill = (id) => { setSkillId(id); setRoute('skill'); window.scrollTo(0, 0); };
+  const abrirPractica = (id, from) => { setSkillId(id); setPracticaVolver(from || 'ruta'); setRoute('practica'); window.scrollTo(0, 0); };
+  // La pestaña "Práctica" lanza la práctica del día (siguiente skill)
+  const navTo = (r) => { if (r === 'practica') abrirPractica(ESTUDIANTE.siguienteSkillId, 'inicio'); else go(r); };
 
-  // Comandos para la paleta ⌘K: navegación + cursos + tareas + acciones
+  // Comandos ⌘K
   const cmdkActions = aMemo(() => {
     const nav = [
-      ...NAV,
-      { id: 'ayuda', label: 'Ayuda', Icon: IconAyuda },
-      { id: 'cuenta', label: 'Mi cuenta', Icon: IconCuenta },
-    ].map(n => ({ id: 'nav-' + n.id, group: 'Ir a', label: n.label, icon: n.Icon, run: () => go(n.id) }));
+      { id: 'inicio',   label: 'Inicio',           icon: IconHome,   run: () => navTo('inicio') },
+      { id: 'ruta',     label: 'Mi ruta',          icon: IconRoute,  run: () => navTo('ruta') },
+      { id: 'practica', label: 'Práctica del día', icon: IconTarget, run: () => navTo('practica') },
+      { id: 'tutor',    label: 'Tutor IA',         icon: IconBrain,  run: () => navTo('tutor') },
+      { id: 'progreso', label: 'Progreso',         icon: IconChart,  run: () => navTo('progreso') },
+      { id: 'diag',     label: 'Diagnóstico',      icon: IconPulse,  run: () => go('diagnostico') },
+      { id: 'ayuda',    label: 'Ayuda',            icon: IconAyuda,  run: () => go('ayuda') },
+      { id: 'cuenta',   label: 'Mi cuenta',        icon: IconCuenta, run: () => go('cuenta') },
+    ].map(a => ({ ...a, group: 'Ir a' }));
 
-    const cursos = CURSOS.map(c => ({
-      id: 'curso-' + c.id, group: 'Cursos', label: c.nombre,
-      sub: `${c.clave} · ${c.docente}`, curso: c, run: () => openCurso(c.id),
+    const temas = todosLosSkills().map(s => ({
+      id: 'skill-' + s.id, group: 'Temas', label: s.nombre,
+      sub: `${s.etapa} · ${s.estado.replace('-', ' ')}`,
+      icon: s.esRezago ? IconRefresh : IconTarget,
+      run: () => openSkill(s.id),
     }));
 
-    const tareas = TAREAS.map(t => {
-      const c = courseOf(t.curso);
-      return {
-        id: 'tarea-' + t.id, group: 'Tareas y entregas', label: t.titulo,
-        sub: `${c.nombre} · vence ${t.vence}`, curso: c, run: () => openTarea(t.id),
-      };
-    });
-
     const acciones = [
-      { id: 'act-tema', group: 'Acciones', label: `Cambiar a modo ${t.dark ? 'claro' : 'oscuro'}`, icon: IconSettings, run: () => setTweak('dark', !t.dark) },
-      { id: 'act-semana', group: 'Acciones', label: 'Ver mi semana en el calendario', icon: IconCalendario, run: () => { go('calendario'); setTweak('calVariant', 'semana'); } },
-      { id: 'act-offline', group: 'Acciones', label: t.offline ? 'Volver a estar en línea' : 'Simular sin conexión', icon: t.offline ? IconWifi : IconWifiOff, run: () => setTweak('offline', !t.offline) },
+      { id: 'a-tutor', group: 'Acciones', label: 'Preguntar al tutor IA', icon: IconBrain, run: () => go('tutor') },
+      { id: 'a-diag',  group: 'Acciones', label: 'Hacer un diagnóstico', icon: IconPulse, run: () => go('diagnostico') },
+      { id: 'a-tema',  group: 'Acciones', label: `Cambiar a modo ${t.dark ? 'claro' : 'oscuro'}`, icon: IconSettings, run: () => setTweak('dark', !t.dark) },
+      { id: 'a-off',   group: 'Acciones', label: t.offline ? 'Volver a estar en línea' : 'Simular sin conexión', icon: t.offline ? IconWifi : IconWifiOff, run: () => setTweak('offline', !t.offline) },
     ];
 
-    return [...nav, ...cursos, ...tareas, ...acciones];
+    return [...nav, ...temas, ...acciones];
   }, [t.dark, t.offline]);
 
   const renderRoute = () => {
     switch (route) {
-      case 'tablero':    return <VistaTablero setRoute={setRoute} openCurso={openCurso} tw={t} />;
-      case 'cursos':     return <VistaCursos openCurso={openCurso} tw={t} />;
-      case 'curso':      return <VistaCursoDetalle cursoId={cursoId} goBack={() => back('cursos')} openTarea={openTarea} />;
-      case 'tarea':      return <VistaTarea tareaId={tareaId} goBack={() => back('curso')} onSubmit={(msg, err) => toast(msg)} />;
-      case 'grupos':     return <VistaGrupos openGrupo={openGrupo} tw={t} />;
-      case 'calendario': return <VistaCalendario tw={t} openCurso={openCurso} />;
-      case 'bandeja':    return <VistaBandeja tw={t} />;
-      case 'historial':  return <VistaHistorial />;
-      case 'ayuda':      return <VistaAyuda />;
-      case 'cuenta':     return <VistaCuenta />;
-      default:           return <VistaTablero setRoute={setRoute} openCurso={openCurso} tw={t} />;
+      case 'inicio':      return <VistaInicio irA={go} openSkill={openSkill} abrirPractica={abrirPractica} tw={t} />;
+      case 'ruta':        return <VistaRuta openSkill={openSkill} tw={t} />;
+      case 'skill':       return <VistaSkill skillId={skillId} goBack={() => go('ruta')} abrirPractica={abrirPractica} openSkill={openSkill} />;
+      case 'practica':    return <VistaPractica skillId={skillId} goBack={() => go(practicaVolver)} toast={toast} />;
+      case 'diagnostico': return <VistaDiagnostico goBack={() => go('inicio')} irARuta={() => go('ruta')} />;
+      case 'tutor':       return <VistaTutor tw={t} />;
+      case 'progreso':    return <VistaProgreso irA={go} />;
+      case 'ayuda':       return <VistaAyuda />;
+      case 'cuenta':      return <VistaCuenta />;
+      default:            return <VistaInicio irA={go} openSkill={openSkill} abrirPractica={abrirPractica} tw={t} />;
     }
   };
 
-  // Normalize route for topbar highlighting
-  const navRoute = route === 'curso' ? 'cursos' :
-                   route === 'tarea' ? 'cursos' :
-                   route;
+  const navRoute = route === 'skill' ? 'ruta' : route;
 
   return (
     <div className="app">
       {t.offline && (
         <div className="offline-banner">
           <IconWifiOff size={14} />
-          Sin conexión · sigues trabajando con lo descargado. Tus entregas se sincronizan al volver la señal.
+          Sin conexión · sigues practicando con lo descargado. Tu avance se sincroniza al volver la señal.
         </div>
       )}
-      <Topbar route={navRoute} setRoute={(r) => { setRoute(r); window.scrollTo(0, 0); }}
-              onOpenSearch={() => setCmdkOpen(true)} online={!t.offline} />
-      <main className="main" key={route + (cursoId || '') + (tareaId || '')}>
+      <Topbar route={navRoute} setRoute={navTo} onOpenSearch={() => setCmdkOpen(true)} online={!t.offline} />
+      <main className="main" key={route + (skillId || '')}>
         {renderRoute()}
       </main>
-      <BottomNav route={navRoute} setRoute={setRoute} />
+      <BottomNav route={navRoute} setRoute={navTo} />
       {toastNode}
       {cmdkOpen && <CommandPalette actions={cmdkActions} onClose={() => setCmdkOpen(false)} />}
 
@@ -134,21 +123,17 @@ function App() {
         <TweakColor label="Color de acento" value={t.accent} options={ACCENT_OPTIONS} onChange={v => setTweak('accent', v)} />
         <TweakSlider label="Escala de texto" min={0.9} max={1.15} step={0.05} value={t.fontScale} unit="x" onChange={v => setTweak('fontScale', v)} />
 
-        <TweakSection label="Variantes de vista" />
-        <TweakRadio label="Cursos" value={t.cursosVariant} options={['cards', 'lista']} onChange={v => setTweak('cursosVariant', v)} />
-        <TweakRadio label="Calendario" value={t.calVariant} options={['mes', 'semana', 'agenda']} onChange={v => setTweak('calVariant', v)} />
-
         <TweakSection label="Conexión" />
         <TweakToggle label="Simular sin conexión" value={t.offline} onChange={v => setTweak('offline', v)} />
 
-        <TweakSection label="Atajos · flujo demo" />
+        <TweakSection label="Atajos · demo" />
         <TweakButton label="Buscar · paleta ⌘K" onClick={() => setCmdkOpen(true)} />
-        <TweakButton label="Tablero" onClick={() => setRoute('tablero')} />
-        <TweakButton label="Abrir Cálculo Integral" onClick={() => openCurso('mat')} />
-        <TweakButton label="Entregar tarea (problema 14)" onClick={() => openTarea('t1')} />
-        <TweakButton label="Calendario · semana" onClick={() => { setRoute('calendario'); setTweak('calVariant', 'semana'); }} />
-        <TweakButton label="Bandeja (chat docente)" onClick={() => setRoute('bandeja')} />
-        <TweakButton label="Mi cuenta" onClick={() => setRoute('cuenta')} />
+        <TweakButton label="Inicio" onClick={() => go('inicio')} />
+        <TweakButton label="Practicar fracciones" onClick={() => abrirPractica('frac-sumres', 'inicio')} />
+        <TweakButton label="Ruta de aprendizaje" onClick={() => go('ruta')} />
+        <TweakButton label="Tutor IA" onClick={() => go('tutor')} />
+        <TweakButton label="Diagnóstico" onClick={() => go('diagnostico')} />
+        <TweakButton label="Progreso" onClick={() => go('progreso')} />
       </TweaksPanel>
     </div>
   );
@@ -157,9 +142,7 @@ function App() {
 // Color helpers
 function hexToRgba(hex, alpha) {
   const h = hex.replace('#', '');
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 function lighten(hex, amount) { return mix(hex, '#ffffff', amount); }

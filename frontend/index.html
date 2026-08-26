@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aula — Sistema de aprendizaje</title>
+<title>Aula — Regulariza tus matemáticas con IA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..500&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -222,6 +222,44 @@
   /* ── Offline banner ───────────────────────────────────────────────── */
   .offline-banner { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 7px 16px; background: var(--warn-soft); color: var(--warn); font-size: 12.5px; font-weight: 500; text-align: center; }
   @media (max-width: 880px) { .offline-banner { font-size: 11.5px; padding: 7px 12px; } }
+
+  /* ── Matemáticas · práctica ───────────────────────────────────────── */
+  .mathq { font-family: var(--font-mono); font-feature-settings: "ss02"; }
+  .frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: -0.38em; line-height: 1; margin: 0 3px; font-size: 0.88em; }
+  .frac > span:first-child { padding: 0 5px 2px; border-bottom: 1.6px solid currentColor; }
+  .frac > span:last-child { padding: 2px 5px 0; }
+
+  /* Opciones de respuesta */
+  .opt { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 15px 18px; border-radius: 14px; border: 1.5px solid var(--line-2); background: var(--surface); cursor: default; transition: border-color .15s, background .15s, transform .05s; font-size: 16px; color: var(--ink); }
+  .opt:hover { border-color: var(--faint); }
+  .opt:active { transform: translateY(1px); }
+  .opt[data-state="selected"] { border-color: var(--primary); background: var(--primary-soft); }
+  .opt[data-state="correct"] { border-color: var(--accent); background: var(--accent-soft); }
+  .opt[data-state="wrong"] { border-color: var(--danger); background: var(--danger-soft); }
+  .opt[data-state="muted"] { opacity: .45; }
+  .opt-key { width: 30px; height: 30px; border-radius: 9px; background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 13px; flex-shrink: 0; color: var(--ink-2); }
+  .opt[data-state="selected"] .opt-key { background: var(--primary); color: #fff; }
+  .opt[data-state="correct"] .opt-key { background: var(--accent); color: #fff; }
+  .opt[data-state="wrong"] .opt-key { background: var(--danger); color: #fff; }
+
+  /* Entrada numérica */
+  .numin { width: 100%; padding: 16px 18px; font-family: var(--font-mono); font-size: 24px; text-align: center; background: var(--surface); border: 1.5px solid var(--line-2); border-radius: 14px; color: var(--ink); outline: none; }
+  .numin:focus { border-color: var(--primary); }
+  .numin::placeholder { color: var(--faint); }
+
+  /* Selector de etapa (chips) */
+  .chip-etapa { padding: 8px 15px; border-radius: 999px; font-size: 13.5px; font-weight: 500; border: 1px solid var(--line-2); background: var(--surface); cursor: default; white-space: nowrap; transition: background .15s, border-color .15s, color .15s; }
+  .chip-etapa:hover { border-color: var(--faint); }
+  .chip-etapa[data-on="1"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+  /* Sugerencias del tutor / heatmap de racha */
+  .suger { padding: 8px 14px; border-radius: 999px; font-size: 13px; border: 1px solid var(--line-2); background: var(--surface); cursor: default; white-space: nowrap; color: var(--ink-2); transition: background .15s, border-color .15s; }
+  .suger:hover { background: var(--surface-2); border-color: var(--faint); }
+  .heat { border-radius: 4px; background: var(--surface-2); }
+
+  @keyframes pop { 0% { transform: scale(.9); opacity: 0; } 60% { transform: scale(1.03); } 100% { transform: scale(1); opacity: 1; } }
+  .pop { animation: pop .28s cubic-bezier(.3,.7,.4,1.3) both; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 4px var(--primary-soft); } 50% { box-shadow: 0 0 0 9px transparent; } }
 </style>
 </head>
 <body>

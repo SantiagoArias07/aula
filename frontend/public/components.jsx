@@ -1,18 +1,100 @@
-// components.jsx — shared UI: Topbar, Card, Pill, CourseTile, Avatar, etc.
+// components.jsx — UI compartida: Topbar, navegación, helpers de datos,
+// componentes de matemáticas (Frac, Expr, Ring), paleta ⌘K.
 
 const { useState, useEffect, useRef, useMemo } = React;
 
-// ─────────────────────────────────────────────────────────────────────
-// Topbar
-// ─────────────────────────────────────────────────────────────────────
+// ── Helpers de datos ──────────────────────────────────────────────────
+function skillById(id) {
+  for (const u of RUTA) { const s = u.skills.find(s => s.id === id); if (s) return s; }
+  return null;
+}
+function unidadDeSkill(id) { return RUTA.find(u => u.skills.some(s => s.id === id)) || null; }
+function todosLosSkills() { return RUTA.flatMap(u => u.skills); }
+function problemasDe(id) { return PROBLEMAS[id] || []; }
+function siguienteSkill() { return skillById(ESTUDIANTE.siguienteSkillId); }
+function saludoHora() {
+  const h = new Date().getHours();
+  if (h < 12) return "Buenos días";
+  if (h < 19) return "Buenas tardes";
+  return "Buenas noches";
+}
 
+// ── Matemáticas ───────────────────────────────────────────────────────
+// Fracción apilada
+function Frac({ n, d }) {
+  return <span className="frac"><span>{n}</span><span>{d}</span></span>;
+}
+// Renderiza texto matemático: convierte tokens "a/b" en fracciones y "x^n" en potencias.
+function Expr({ children }) {
+  const str = String(children);
+  const parts = str.split(/(\s+)/);
+  return (
+    <span className="mathq">
+      {parts.map((tok, i) => {
+        const f = tok.match(/^(-?\d+)\/(\d+)([)\].,;:?!]*)$/);
+        if (f) return <React.Fragment key={i}><Frac n={f[1]} d={f[2]} />{f[3]}</React.Fragment>;
+        const p = tok.match(/^([A-Za-z0-9]+)\^(\d+)([)\].,;:?!]*)$/);
+        if (p) return <React.Fragment key={i}>{p[1]}<sup>{p[2]}</sup>{p[3]}</React.Fragment>;
+        return <React.Fragment key={i}>{tok}</React.Fragment>;
+      })}
+    </span>
+  );
+}
+
+// Glyph de color (etapa / área)
+function Glyph({ color, size = 44, radius = 12, children }) {
+  return (
+    <div className={color} style={{
+      width: size, height: size, borderRadius: radius,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: 'var(--ink)', flexShrink: 0,
+    }}>{children}</div>
+  );
+}
+
+// Aro de progreso / dominio
+function Ring({ value, size = 132, stroke = 11, tone = 'var(--primary)', track = 'var(--line)', children }) {
+  const r = (size - stroke) / 2, c = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(100, value)) / 100;
+  return (
+    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={tone} strokeWidth={stroke} strokeLinecap="round"
+                strokeDasharray={c} strokeDashoffset={c * (1 - pct)} transform={`rotate(-90 ${size / 2} ${size / 2})`}
+                style={{ transition: 'stroke-dashoffset .8s cubic-bezier(.3,.7,.4,1)' }} />
+      </svg>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// Barra de progreso
+function Progress({ value, tone = 'var(--ink)', h = 6 }) {
+  return (
+    <div style={{ width: '100%', height: h, background: 'var(--line)', borderRadius: 999, overflow: 'hidden' }}>
+      <div style={{ width: `${Math.max(0, Math.min(100, value))}%`, height: '100%', background: tone, borderRadius: 999, transition: 'width .5s cubic-bezier(.3,.7,.4,1)' }} />
+    </div>
+  );
+}
+
+// Pastilla de estado de un skill
+function EstadoPill({ estado }) {
+  if (estado === 'dominado')    return <span className="pill pill-accent"><IconCheck size={12} />Dominado</span>;
+  if (estado === 'en-progreso') return <span className="pill pill-primary"><IconPlay size={10} />En progreso</span>;
+  if (estado === 'disponible')  return <span className="pill pill-ghost"><IconPlay size={10} />Disponible</span>;
+  return <span className="pill pill-ghost"><IconLock size={11} />Bloqueado</span>;
+}
+
+// ── Topbar ────────────────────────────────────────────────────────────
 const NAV = [
-  { id: "tablero",    label: "Tablero",    Icon: IconTablero },
-  { id: "cursos",     label: "Cursos",     Icon: IconCursos },
-  { id: "grupos",     label: "Grupos",     Icon: IconGrupos },
-  { id: "calendario", label: "Calendario", Icon: IconCalendario },
-  { id: "bandeja",    label: "Bandeja",    Icon: IconBandeja, badge: 2 },
-  { id: "historial",  label: "Historial",  Icon: IconHistorial },
+  { id: "inicio",   label: "Inicio",    Icon: IconHome },
+  { id: "ruta",     label: "Mi ruta",   Icon: IconRoute },
+  { id: "practica", label: "Práctica",  Icon: IconTarget },
+  { id: "tutor",    label: "Tutor IA",  Icon: IconBrain },
+  { id: "progreso", label: "Progreso",  Icon: IconChart },
 ];
 
 function Topbar({ route, setRoute, onOpenSearch, online = true }) {
@@ -21,22 +103,21 @@ function Topbar({ route, setRoute, onOpenSearch, online = true }) {
   return (
     <header className="topbar">
       <div className="topbar-inner">
-        <a className="brand" onClick={() => setRoute("tablero")}>
+        <a className="brand" onClick={() => setRoute("inicio")}>
           <span className="brand-dot" aria-hidden="true"></span>
           <span style={{ letterSpacing: "-0.01em" }}>Aula</span>
         </a>
         <nav className="nav" aria-label="Navegación principal">
-          {NAV.map(({ id, label, Icon: Ic, badge }) => (
+          {NAV.map(({ id, label }) => (
             <a key={id} className="nav-link" aria-current={route === id ? "page" : undefined} onClick={() => setRoute(id)}>
               <span>{label}</span>
-              {badge ? <span className="badge">{badge}</span> : null}
             </a>
           ))}
         </nav>
         <div className="nav-spacer" />
         <div className="search" onClick={onOpenSearch}>
           <IconSearch size={14} />
-          <span>Buscar…</span>
+          <span>Buscar tema…</span>
           <span className="kbd">⌘K</span>
         </div>
         <button className="icon-btn show-sm" onClick={onOpenSearch} aria-label="Buscar">
@@ -49,10 +130,10 @@ function Topbar({ route, setRoute, onOpenSearch, online = true }) {
           </button>
           {notifOpen && <NotifPopover onClose={() => setNotifOpen(false)} />}
         </div>
-        <a className="nav-link nav-ayuda" onClick={() => setRoute('ayuda')} aria-current={route === 'ayuda' ? 'page' : undefined}>Ayuda</a>
+        <a className="nav-link nav-ayuda" onClick={() => setRoute('diagnostico')} aria-current={route === 'diagnostico' ? 'page' : undefined}>Diagnóstico</a>
         <div style={{ position: 'relative' }}>
           <button onClick={() => setAvatarOpen(v => !v)} style={{ border: 0, padding: 0, background: 'transparent', cursor: 'default' }} aria-label="Cuenta">
-            <span className="avatar">{USER.iniciales}</span>
+            <span className="avatar">{ESTUDIANTE.iniciales}</span>
           </button>
           {avatarOpen && <AvatarPopover onClose={() => setAvatarOpen(false)} setRoute={setRoute} online={online} />}
         </div>
@@ -78,21 +159,18 @@ function NotifPopover({ onClose }) {
         <span className="eyebrow">{NOTIFICACIONES.length} nuevas</span>
       </div>
       <div style={{ maxHeight: 360, overflowY: 'auto' }}>
-        {NOTIFICACIONES.map((n, i) => {
-          const curso = n.curso ? CURSOS.find(c => c.id === n.curso) : null;
-          return (
-            <div key={n.id} style={{ padding: '14px 18px', display: 'flex', gap: 12, alignItems: 'flex-start', borderTop: i ? '1px solid var(--line)' : 'none' }}>
-              <div className={curso?.color || 'placeholder'} style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink)' }}>
-                {curso ? curso.clave.split('-')[0] : 'AV'}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 500 }}>{n.titulo}</div>
-                <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>{n.detalle}</div>
-              </div>
-              <div className="mono" style={{ fontSize: 10.5, color: 'var(--faint)' }}>{n.hace}</div>
+        {NOTIFICACIONES.map((n, i) => (
+          <div key={n.id} style={{ padding: '14px 18px', display: 'flex', gap: 12, alignItems: 'flex-start', borderTop: i ? '1px solid var(--line)' : 'none' }}>
+            <Glyph color={n.color} size={36} radius={10}>
+              {n.tipo === 'racha' ? <IconFlame size={16} /> : n.tipo === 'logro' ? <IconStar size={16} /> : n.tipo === 'tutor' ? <IconBrain size={16} /> : <IconTarget size={16} />}
+            </Glyph>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 500 }}>{n.titulo}</div>
+              <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>{n.detalle}</div>
             </div>
-          );
-        })}
+            <div className="mono" style={{ fontSize: 10.5, color: 'var(--faint)', flexShrink: 0 }}>{n.hace}</div>
+          </div>
+        ))}
       </div>
       <div style={{ padding: 10, borderTop: '1px solid var(--line)', textAlign: 'center' }}>
         <a style={{ fontSize: 13, color: 'var(--muted)' }}>Ver todas →</a>
@@ -114,15 +192,16 @@ function AvatarPopover({ onClose, setRoute, online }) {
       background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 14, boxShadow: 'var(--shadow)', overflow: 'hidden'
     }}>
       <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--line)', display: 'flex', gap: 12, alignItems: 'center' }}>
-        <span className="avatar" style={{ width: 44, height: 44, fontSize: 15 }}>{USER.iniciales}</span>
+        <span className="avatar" style={{ width: 44, height: 44, fontSize: 15 }}>{ESTUDIANTE.iniciales}</span>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 500 }} className="truncate">{USER.nombre} {USER.apellido}</div>
-          <div className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>{USER.matricula}</div>
+          <div style={{ fontSize: 14, fontWeight: 500 }} className="truncate">{ESTUDIANTE.nombre} {ESTUDIANTE.apellido}</div>
+          <div className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>{ESTUDIANTE.nivelLabel}</div>
         </div>
       </div>
       <div style={{ padding: 6 }}>
         <PopRow label="Mi cuenta" icon={<IconCuenta size={16} />} onClick={() => { setRoute('cuenta'); onClose(); }} />
-        <PopRow label="Configuración" icon={<IconSettings size={16} />} />
+        <PopRow label="Diagnóstico" icon={<IconPulse size={16} />} onClick={() => { setRoute('diagnostico'); onClose(); }} />
+        <PopRow label="Ayuda" icon={<IconAyuda size={16} />} onClick={() => { setRoute('ayuda'); onClose(); }} />
         <PopRow label={online ? 'En línea' : 'Sin conexión'} icon={online ? <IconWifi size={16} /> : <IconWifiOff size={16} />} right={<span className="pill pill-ghost mono" style={{ fontSize: 10 }}>{online ? 'sync' : 'cola'}</span>} />
       </div>
       <div style={{ borderTop: '1px solid var(--line)', padding: 6 }}>
@@ -144,15 +223,11 @@ function PopRow({ icon, label, right, onClick }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// Bottom nav (mobile)
-// ─────────────────────────────────────────────────────────────────────
-
+// ── Bottom nav (móvil) ────────────────────────────────────────────────
 function BottomNav({ route, setRoute }) {
-  const items = NAV.slice(0, 5);
   return (
     <div className="bottom-nav">
-      {items.map(({ id, label, Icon: Ic }) => (
+      {NAV.map(({ id, label, Icon: Ic }) => (
         <a key={id} onClick={() => setRoute(id)} aria-current={route === id ? 'page' : undefined}>
           <Ic size={20} />
           <span>{label}</span>
@@ -170,31 +245,13 @@ function BottomNav({ route, setRoute }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// Common bits
-// ─────────────────────────────────────────────────────────────────────
-
-function CourseGlyph({ curso, size = 40, radius = 10 }) {
-  if (!curso) return null;
-  return (
-    <div className={curso.color}
-      style={{
-        width: size, height: size, borderRadius: radius,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: 'var(--font-mono)', fontSize: Math.max(9, size * 0.22), letterSpacing: '.04em',
-        color: 'var(--ink)', flexShrink: 0
-      }}>
-      {curso.clave.split('-')[0]}
-    </div>
-  );
-}
-
+// ── Bits comunes ──────────────────────────────────────────────────────
 function SectionTitle({ eyebrow, title, subtitle, right }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, marginBottom: 24 }}>
+    <div className="hero-wrap-sm" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, marginBottom: 24 }}>
       <div>
         {eyebrow && <div className="eyebrow" style={{ marginBottom: 8 }}>{eyebrow}</div>}
-        <h1 className="display" style={{ fontSize: 'clamp(36px, 4vw, 56px)', margin: 0 }}>{title}</h1>
+        <h1 className="display" style={{ fontSize: 'clamp(34px, 4vw, 54px)', margin: 0 }}>{title}</h1>
         {subtitle && <div style={{ marginTop: 10, color: 'var(--muted)', fontSize: 15 }}>{subtitle}</div>}
       </div>
       {right}
@@ -202,49 +259,6 @@ function SectionTitle({ eyebrow, title, subtitle, right }) {
   );
 }
 
-// Carga académica — donut chart
-function LoadGauge({ pendientes, total = 10, label = "Carga de la semana" }) {
-  const pct = Math.min(1, pendientes / total);
-  // tone by load
-  let tone = 'var(--accent)';
-  let toneSoft = 'var(--accent-soft)';
-  let texto = 'Vas relajada';
-  if (pct >= 0.4) { tone = 'var(--warn)'; toneSoft = 'var(--warn-soft)'; texto = 'Semana ocupada'; }
-  if (pct >= 0.7) { tone = 'var(--danger)'; toneSoft = 'var(--danger-soft)'; texto = 'Está pesada'; }
-  const r = 52, c = 2 * Math.PI * r;
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-      <svg width="130" height="130" viewBox="0 0 130 130">
-        <circle cx="65" cy="65" r={r} fill="none" stroke="var(--line)" strokeWidth="10" />
-        <circle cx="65" cy="65" r={r} fill="none" stroke={tone} strokeWidth="10" strokeLinecap="round"
-                strokeDasharray={c} strokeDashoffset={c * (1 - pct)} transform="rotate(-90 65 65)"
-                style={{ transition: 'stroke-dashoffset .8s ease' }} />
-        <text x="65" y="60" textAnchor="middle" fontFamily="var(--font-serif)" fontSize="34" fill="var(--ink)">{pendientes}</text>
-        <text x="65" y="80" textAnchor="middle" fontFamily="var(--font-mono)" fontSize="10" fill="var(--muted)" letterSpacing="0.1em">PENDIENTES</text>
-      </svg>
-      <div>
-        <div className="eyebrow">{label}</div>
-        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, marginTop: 4 }}>{texto}</div>
-        <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>{pendientes} de {total} actividades de la semana</div>
-        <span className="pill" style={{ marginTop: 10, background: toneSoft, color: tone, fontWeight: 600 }}>
-          <span style={{ width: 6, height: 6, borderRadius: 999, background: tone }}></span>
-          {pct < 0.4 ? 'Carga baja' : pct < 0.7 ? 'Carga media' : 'Carga alta'}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-// Inline progress bar
-function Progress({ value, tone = 'var(--ink)' }) {
-  return (
-    <div style={{ width: '100%', height: 4, background: 'var(--line)', borderRadius: 4, overflow: 'hidden' }}>
-      <div style={{ width: `${value}%`, height: '100%', background: tone, transition: 'width .4s ease' }} />
-    </div>
-  );
-}
-
-// Empty state
 function EmptyState({ title, body, icon }) {
   return (
     <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--muted)' }}>
@@ -257,24 +271,10 @@ function EmptyState({ title, body, icon }) {
   );
 }
 
-// Get course by id
-function courseOf(id) { return CURSOS.find(c => c.id === id); }
-
-// Urgencia pill
-function UrgenciaPill({ urgencia }) {
-  if (urgencia === 'hoy')    return <span className="pill pill-danger"><IconWarn size={12} />Vence hoy</span>;
-  if (urgencia === 'manana') return <span className="pill pill-warn"><IconClock size={12} />Mañana</span>;
-  if (urgencia === 'semana') return <span className="pill pill-ghost"><IconClock size={12} />Esta semana</span>;
-  return null;
-}
-
-// Toast helper
+// Toast
 function useToast() {
   const [t, setT] = useState(null);
-  const show = (msg) => {
-    setT(msg);
-    setTimeout(() => setT(null), 2600);
-  };
+  const show = (msg) => { setT(msg); setTimeout(() => setT(null), 2600); };
   const node = t && (
     <div style={{
       position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 99,
@@ -288,10 +288,7 @@ function useToast() {
   return [show, node];
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// Command palette (⌘K) — busca cursos, tareas y navega a cualquier vista
-// ─────────────────────────────────────────────────────────────────────
-
+// ── Command palette (⌘K) ──────────────────────────────────────────────
 function CommandPalette({ actions, onClose }) {
   const [q, setQ] = useState('');
   const [active, setActive] = useState(0);
@@ -303,7 +300,6 @@ function CommandPalette({ actions, onClose }) {
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     if (!s) return actions;
-    // match por palabras: todas las palabras deben aparecer en el texto del comando
     const terms = s.split(/\s+/);
     return actions.filter(a => {
       const hay = (a.label + ' ' + (a.sub || '') + ' ' + a.group).toLowerCase();
@@ -317,7 +313,6 @@ function CommandPalette({ actions, onClose }) {
     if (el) el.scrollIntoView({ block: 'nearest' });
   }, [active]);
 
-  // Agrupa preservando el orden de aparición y guarda el índice plano para el teclado
   const groups = useMemo(() => {
     const order = [], map = {};
     filtered.forEach((a, i) => {
@@ -342,7 +337,7 @@ function CommandPalette({ actions, onClose }) {
         <div className="cmdk-top">
           <IconSearch size={18} />
           <input ref={inputRef} className="cmdk-input" value={q} onChange={e => setQ(e.target.value)}
-                 placeholder="Buscar cursos, tareas, o ir a…" aria-label="Buscar" />
+                 placeholder="Busca un tema, el tutor, tu progreso…" aria-label="Buscar" />
           <span className="cmdk-kbd">esc</span>
         </div>
         <div className="cmdk-list" ref={listRef}>
@@ -356,9 +351,11 @@ function CommandPalette({ actions, onClose }) {
                 return (
                   <div key={a.id} className="cmdk-item" data-active={a._i === active ? '1' : '0'}
                        onMouseMove={() => setActive(a._i)} onClick={() => run(a)}>
-                    {a.curso
-                      ? <CourseGlyph curso={a.curso} size={34} radius={9} />
-                      : <span className="cmdk-ic">{Ic ? <Ic size={17} /> : <Sparkle size={16} />}</span>}
+                    <span className="cmdk-ic" style={a.tintClass ? undefined : undefined}>
+                      {a.tintClass
+                        ? <span className={a.tintClass} style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)' }}>{Ic ? <Ic size={16} /> : <Sparkle size={15} />}</span>
+                        : (Ic ? <Ic size={17} /> : <Sparkle size={16} />)}
+                    </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="truncate" style={{ fontSize: 14, fontWeight: 500 }}>{a.label}</div>
                       {a.sub && <div className="truncate" style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>{a.sub}</div>}
@@ -381,6 +378,7 @@ function CommandPalette({ actions, onClose }) {
 }
 
 Object.assign(window, {
-  Topbar, BottomNav, CourseGlyph, SectionTitle, LoadGauge, Progress,
-  EmptyState, courseOf, UrgenciaPill, useToast, NAV, CommandPalette,
+  skillById, unidadDeSkill, todosLosSkills, problemasDe, siguienteSkill, saludoHora,
+  Frac, Expr, Glyph, Ring, Progress, EstadoPill,
+  Topbar, BottomNav, SectionTitle, EmptyState, useToast, CommandPalette, NAV,
 });
