@@ -1,30 +1,12 @@
-// components.jsx — UI compartida: Topbar, navegación, helpers de datos,
-// componentes de matemáticas (Frac, Expr, Ring), paleta ⌘K.
+// components.jsx — UI compartida: matemáticas (Frac/Expr/Ring), Topbar/nav, paleta ⌘K.
+// Los helpers de datos viven en data.jsx (conscientes del nivel activo).
 
 const { useState, useEffect, useRef, useMemo } = React;
 
-// ── Helpers de datos ──────────────────────────────────────────────────
-function skillById(id) {
-  for (const u of RUTA) { const s = u.skills.find(s => s.id === id); if (s) return s; }
-  return null;
-}
-function unidadDeSkill(id) { return RUTA.find(u => u.skills.some(s => s.id === id)) || null; }
-function todosLosSkills() { return RUTA.flatMap(u => u.skills); }
-function problemasDe(id) { return PROBLEMAS[id] || []; }
-function siguienteSkill() { return skillById(ESTUDIANTE.siguienteSkillId); }
-function saludoHora() {
-  const h = new Date().getHours();
-  if (h < 12) return "Buenos días";
-  if (h < 19) return "Buenas tardes";
-  return "Buenas noches";
-}
-
 // ── Matemáticas ───────────────────────────────────────────────────────
-// Fracción apilada
 function Frac({ n, d }) {
   return <span className="frac"><span>{n}</span><span>{d}</span></span>;
 }
-// Renderiza texto matemático: convierte tokens "a/b" en fracciones y "x^n" en potencias.
 function Expr({ children }) {
   const str = String(children);
   const parts = str.split(/(\s+)/);
@@ -40,19 +22,11 @@ function Expr({ children }) {
     </span>
   );
 }
-
-// Glyph de color (etapa / área)
 function Glyph({ color, size = 44, radius = 12, children }) {
   return (
-    <div className={color} style={{
-      width: size, height: size, borderRadius: radius,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      color: 'var(--ink)', flexShrink: 0,
-    }}>{children}</div>
+    <div className={color} style={{ width: size, height: size, borderRadius: radius, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)', flexShrink: 0 }}>{children}</div>
   );
 }
-
-// Aro de progreso / dominio
 function Ring({ value, size = 132, stroke = 11, tone = 'var(--primary)', track = 'var(--line)', children }) {
   const r = (size - stroke) / 2, c = 2 * Math.PI * r;
   const pct = Math.max(0, Math.min(100, value)) / 100;
@@ -64,14 +38,10 @@ function Ring({ value, size = 132, stroke = 11, tone = 'var(--primary)', track =
                 strokeDasharray={c} strokeDashoffset={c * (1 - pct)} transform={`rotate(-90 ${size / 2} ${size / 2})`}
                 style={{ transition: 'stroke-dashoffset .8s cubic-bezier(.3,.7,.4,1)' }} />
       </svg>
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-        {children}
-      </div>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>{children}</div>
     </div>
   );
 }
-
-// Barra de progreso
 function Progress({ value, tone = 'var(--ink)', h = 6 }) {
   return (
     <div style={{ width: '100%', height: h, background: 'var(--line)', borderRadius: 999, overflow: 'hidden' }}>
@@ -79,8 +49,6 @@ function Progress({ value, tone = 'var(--ink)', h = 6 }) {
     </div>
   );
 }
-
-// Pastilla de estado de un skill
 function EstadoPill({ estado }) {
   if (estado === 'dominado')    return <span className="pill pill-accent"><IconCheck size={12} />Dominado</span>;
   if (estado === 'en-progreso') return <span className="pill pill-primary"><IconPlay size={10} />En progreso</span>;
@@ -90,16 +58,17 @@ function EstadoPill({ estado }) {
 
 // ── Topbar ────────────────────────────────────────────────────────────
 const NAV = [
-  { id: "inicio",   label: "Inicio",    Icon: IconHome },
-  { id: "ruta",     label: "Mi ruta",   Icon: IconRoute },
-  { id: "practica", label: "Práctica",  Icon: IconTarget },
-  { id: "tutor",    label: "Tutor IA",  Icon: IconBrain },
-  { id: "progreso", label: "Progreso",  Icon: IconChart },
+  { id: "inicio",   label: "Inicio",   kids: "Inicio",     Icon: IconHome },
+  { id: "ruta",     label: "Mi ruta",  kids: "Mi mapa",    Icon: IconRoute },
+  { id: "practica", label: "Práctica", kids: "A jugar",    Icon: IconTarget },
+  { id: "tutor",    label: "Tutor IA", kids: "Ayudín",     Icon: IconBrain },
+  { id: "progreso", label: "Progreso", kids: "Mis premios", Icon: IconChart },
 ];
 
-function Topbar({ route, setRoute, onOpenSearch, online = true }) {
+function Topbar({ route, setRoute, onOpenSearch, online = true, modo = 'teen' }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const et = etapaActiva();
   return (
     <header className="topbar">
       <div className="topbar-inner">
@@ -108,29 +77,28 @@ function Topbar({ route, setRoute, onOpenSearch, online = true }) {
           <span style={{ letterSpacing: "-0.01em" }}>Aula</span>
         </a>
         <nav className="nav" aria-label="Navegación principal">
-          {NAV.map(({ id, label }) => (
-            <a key={id} className="nav-link" aria-current={route === id ? "page" : undefined} onClick={() => setRoute(id)}>
-              <span>{label}</span>
+          {NAV.map(n => (
+            <a key={n.id} className="nav-link" aria-current={route === n.id ? "page" : undefined} onClick={() => setRoute(n.id)}>
+              <span>{modo === 'kids' ? n.kids : n.label}</span>
             </a>
           ))}
         </nav>
         <div className="nav-spacer" />
+        <a className="nav-link nav-ayuda" onClick={() => setRoute('niveles')} title="Cambiar de nivel">
+          <span className="pill pill-ghost" style={{ gap: 6 }}>{et.emoji} {ESTUDIANTE.nivelLabel}</span>
+        </a>
         <div className="search" onClick={onOpenSearch}>
           <IconSearch size={14} />
           <span>Buscar tema…</span>
           <span className="kbd">⌘K</span>
         </div>
-        <button className="icon-btn show-sm" onClick={onOpenSearch} aria-label="Buscar">
-          <IconSearch size={18} />
-        </button>
+        <button className="icon-btn show-sm" onClick={onOpenSearch} aria-label="Buscar"><IconSearch size={18} /></button>
         <div style={{ position: 'relative' }}>
           <button className="icon-btn" onClick={() => setNotifOpen(v => !v)} aria-label="Notificaciones">
-            <IconBell size={18} />
-            <span className="dot" />
+            <IconBell size={18} /><span className="dot" />
           </button>
           {notifOpen && <NotifPopover onClose={() => setNotifOpen(false)} />}
         </div>
-        <a className="nav-link nav-ayuda" onClick={() => setRoute('diagnostico')} aria-current={route === 'diagnostico' ? 'page' : undefined}>Diagnóstico</a>
         <div style={{ position: 'relative' }}>
           <button onClick={() => setAvatarOpen(v => !v)} style={{ border: 0, padding: 0, background: 'transparent', cursor: 'default' }} aria-label="Cuenta">
             <span className="avatar">{ESTUDIANTE.iniciales}</span>
@@ -150,10 +118,7 @@ function NotifPopover({ onClose }) {
     return () => document.removeEventListener('click', h);
   }, []);
   return (
-    <div ref={ref} style={{
-      position: 'absolute', top: 'calc(100% + 12px)', right: 0, width: 360, zIndex: 50,
-      background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 14, boxShadow: 'var(--shadow)', overflow: 'hidden'
-    }}>
+    <div ref={ref} style={{ position: 'absolute', top: 'calc(100% + 12px)', right: 0, width: 360, zIndex: 50, background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 14, boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
       <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <strong style={{ fontWeight: 600 }}>Notificaciones</strong>
         <span className="eyebrow">{NOTIFICACIONES.length} nuevas</span>
@@ -187,10 +152,7 @@ function AvatarPopover({ onClose, setRoute, online }) {
     return () => document.removeEventListener('click', h);
   }, []);
   return (
-    <div ref={ref} style={{
-      position: 'absolute', top: 'calc(100% + 12px)', right: 0, width: 280, zIndex: 50,
-      background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 14, boxShadow: 'var(--shadow)', overflow: 'hidden'
-    }}>
+    <div ref={ref} style={{ position: 'absolute', top: 'calc(100% + 12px)', right: 0, width: 280, zIndex: 50, background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 14, boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
       <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--line)', display: 'flex', gap: 12, alignItems: 'center' }}>
         <span className="avatar" style={{ width: 44, height: 44, fontSize: 15 }}>{ESTUDIANTE.iniciales}</span>
         <div style={{ minWidth: 0 }}>
@@ -200,6 +162,7 @@ function AvatarPopover({ onClose, setRoute, online }) {
       </div>
       <div style={{ padding: 6 }}>
         <PopRow label="Mi cuenta" icon={<IconCuenta size={16} />} onClick={() => { setRoute('cuenta'); onClose(); }} />
+        <PopRow label="Cambiar de nivel" icon={<IconRoute size={16} />} onClick={() => { setRoute('niveles'); onClose(); }} />
         <PopRow label="Diagnóstico" icon={<IconPulse size={16} />} onClick={() => { setRoute('diagnostico'); onClose(); }} />
         <PopRow label="Ayuda" icon={<IconAyuda size={16} />} onClick={() => { setRoute('ayuda'); onClose(); }} />
         <PopRow label={online ? 'En línea' : 'Sin conexión'} icon={online ? <IconWifi size={16} /> : <IconWifiOff size={16} />} right={<span className="pill pill-ghost mono" style={{ fontSize: 10 }}>{online ? 'sync' : 'cola'}</span>} />
@@ -224,15 +187,18 @@ function PopRow({ icon, label, right, onClick }) {
 }
 
 // ── Bottom nav (móvil) ────────────────────────────────────────────────
-function BottomNav({ route, setRoute }) {
+function BottomNav({ route, setRoute, modo = 'teen' }) {
   return (
     <div className="bottom-nav">
-      {NAV.map(({ id, label, Icon: Ic }) => (
-        <a key={id} onClick={() => setRoute(id)} aria-current={route === id ? 'page' : undefined}>
-          <Ic size={20} />
-          <span>{label}</span>
-        </a>
-      ))}
+      {NAV.map(n => {
+        const Ic = n.Icon;
+        return (
+          <a key={n.id} onClick={() => setRoute(n.id)} aria-current={route === n.id ? 'page' : undefined}>
+            <Ic size={20} />
+            <span>{modo === 'kids' ? n.kids : n.label}</span>
+          </a>
+        );
+      })}
       <style>{`
         .bottom-nav { display: none; }
         @media (max-width: 880px) {
@@ -271,17 +237,11 @@ function EmptyState({ title, body, icon }) {
   );
 }
 
-// Toast
 function useToast() {
   const [t, setT] = useState(null);
   const show = (msg) => { setT(msg); setTimeout(() => setT(null), 2600); };
   const node = t && (
-    <div style={{
-      position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 99,
-      background: 'var(--ink)', color: 'var(--bg)', padding: '12px 18px',
-      borderRadius: 12, fontSize: 13, fontWeight: 500, boxShadow: 'var(--shadow)',
-      display: 'flex', alignItems: 'center', gap: 10, animation: 'fade .2s ease'
-    }}>
+    <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 99, background: 'var(--ink)', color: 'var(--bg)', padding: '12px 18px', borderRadius: 12, fontSize: 13, fontWeight: 500, boxShadow: 'var(--shadow)', display: 'flex', alignItems: 'center', gap: 10, animation: 'fade .2s ease' }}>
       <IconCheck size={14} />{t}
     </div>
   );
@@ -315,15 +275,11 @@ function CommandPalette({ actions, onClose }) {
 
   const groups = useMemo(() => {
     const order = [], map = {};
-    filtered.forEach((a, i) => {
-      if (!map[a.group]) { map[a.group] = []; order.push(a.group); }
-      map[a.group].push({ ...a, _i: i });
-    });
+    filtered.forEach((a, i) => { if (!map[a.group]) { map[a.group] = []; order.push(a.group); } map[a.group].push({ ...a, _i: i }); });
     return order.map(g => [g, map[g]]);
   }, [filtered]);
 
   const run = (a) => { onClose(); setTimeout(() => a.run(), 0); };
-
   const onKeyDown = (e) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); setActive(i => Math.min(filtered.length - 1, i + 1)); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(i => Math.max(0, i - 1)); }
@@ -336,8 +292,7 @@ function CommandPalette({ actions, onClose }) {
       <div className="cmdk" role="dialog" aria-label="Buscar en Aula" onClick={e => e.stopPropagation()} onKeyDown={onKeyDown}>
         <div className="cmdk-top">
           <IconSearch size={18} />
-          <input ref={inputRef} className="cmdk-input" value={q} onChange={e => setQ(e.target.value)}
-                 placeholder="Busca un tema, el tutor, tu progreso…" aria-label="Buscar" />
+          <input ref={inputRef} className="cmdk-input" value={q} onChange={e => setQ(e.target.value)} placeholder="Busca un tema, el tutor, tu progreso…" aria-label="Buscar" />
           <span className="cmdk-kbd">esc</span>
         </div>
         <div className="cmdk-list" ref={listRef}>
@@ -349,13 +304,8 @@ function CommandPalette({ actions, onClose }) {
               {items.map(a => {
                 const Ic = a.icon;
                 return (
-                  <div key={a.id} className="cmdk-item" data-active={a._i === active ? '1' : '0'}
-                       onMouseMove={() => setActive(a._i)} onClick={() => run(a)}>
-                    <span className="cmdk-ic" style={a.tintClass ? undefined : undefined}>
-                      {a.tintClass
-                        ? <span className={a.tintClass} style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)' }}>{Ic ? <Ic size={16} /> : <Sparkle size={15} />}</span>
-                        : (Ic ? <Ic size={17} /> : <Sparkle size={16} />)}
-                    </span>
+                  <div key={a.id} className="cmdk-item" data-active={a._i === active ? '1' : '0'} onMouseMove={() => setActive(a._i)} onClick={() => run(a)}>
+                    <span className="cmdk-ic">{Ic ? <Ic size={17} /> : <Sparkle size={16} />}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="truncate" style={{ fontSize: 14, fontWeight: 500 }}>{a.label}</div>
                       {a.sub && <div className="truncate" style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>{a.sub}</div>}
@@ -378,7 +328,6 @@ function CommandPalette({ actions, onClose }) {
 }
 
 Object.assign(window, {
-  skillById, unidadDeSkill, todosLosSkills, problemasDe, siguienteSkill, saludoHora,
   Frac, Expr, Glyph, Ring, Progress, EstadoPill,
   Topbar, BottomNav, SectionTitle, EmptyState, useToast, CommandPalette, NAV,
 });

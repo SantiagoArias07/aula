@@ -1,31 +1,34 @@
-// views.jsx — Inicio, Mi ruta, Skill (lección)
+// views.jsx — Inicio, Mi ruta, Skill, Niveles
 
-const { useState: vState, useMemo: vMemo } = React;
+const { useState: vState } = React;
 
 // ─────────────────────────────────────────────────────────────────────
 // INICIO
 // ─────────────────────────────────────────────────────────────────────
 function VistaInicio({ irA, openSkill, abrirPractica, tw }) {
+  const modo = modoActivo();
+  const kids = modo === 'kids';
+  const et = etapaActiva();
   const sig = siguienteSkill();
   const uni = unidadDeSkill(sig.id);
   const restanHoy = Math.max(0, ESTUDIANTE.objetivoDiario - ESTUDIANTE.hechosHoy);
-  const areasTop = AREAS.slice(0, 3);
+  const areas = areasActivas().slice(0, 3);
 
   return (
     <div className="view">
       {/* Saludo */}
       <div style={{ marginBottom: 32 }}>
-        <div className="eyebrow" style={{ marginBottom: 14 }}>Inicio · {HOY}</div>
+        <div className="eyebrow" style={{ marginBottom: 14 }}>Inicio · {et.nombre}{ESTUDIANTE.grado ? ' ' + ESTUDIANTE.grado : ''}</div>
         <div className="hero-wrap-sm" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20 }}>
-          <h1 className="display" style={{ fontSize: 'clamp(40px, 5vw, 66px)', margin: 0, maxWidth: 820 }}>
-            {saludoHora()}, <span className="serif-italic">{ESTUDIANTE.nombre}.</span>
+          <h1 className="display" style={{ fontSize: kids ? 'clamp(40px, 5.5vw, 68px)' : 'clamp(40px, 5vw, 66px)', margin: 0, maxWidth: 820 }}>
+            {kids ? <>¡Hola, <span className="serif-italic">{ESTUDIANTE.nombre}</span>! {et.emoji}</> : <>{saludoHora()}, <span className="serif-italic">{ESTUDIANTE.nombre}.</span></>}
             <br />
             {restanHoy === 0
-              ? <>Ya cerraste tu <span style={{ color: 'var(--accent)' }}>meta de hoy</span>.</>
-              : <>Te faltan <span style={{ color: 'var(--primary)' }}>{restanHoy}</span> {restanHoy === 1 ? 'problema' : 'problemas'} para hoy.</>}
+              ? (kids ? <>¡Ya terminaste hoy! <span style={{ color: 'var(--accent)' }}>🌟</span></> : <>Ya cerraste tu <span style={{ color: 'var(--accent)' }}>meta de hoy</span>.</>)
+              : (kids ? <>Vamos a jugar <span style={{ color: 'var(--primary)' }}>{restanHoy}</span> {restanHoy === 1 ? 'reto' : 'retos'}.</> : <>Te faltan <span style={{ color: 'var(--primary)' }}>{restanHoy}</span> {restanHoy === 1 ? 'problema' : 'problemas'} para hoy.</>)}
           </h1>
           <span className="pill" style={{ background: 'var(--warn-soft)', color: 'var(--warn)', fontWeight: 600, fontSize: 14, height: 34, padding: '0 14px', flexShrink: 0 }}>
-            <IconFlame size={16} />{ESTUDIANTE.racha} días de racha
+            <IconFlame size={16} />{ESTUDIANTE.racha} días {kids ? '🔥' : 'de racha'}
           </span>
         </div>
       </div>
@@ -35,7 +38,7 @@ function VistaInicio({ irA, openSkill, abrirPractica, tw }) {
         <div className="card card-lg" style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
             <div>
-              <div className="eyebrow">Continúa donde te quedaste</div>
+              <div className="eyebrow">{kids ? 'Sigue jugando' : 'Continúa donde te quedaste'}</div>
               <div className="display" style={{ fontSize: 30, marginTop: 6 }}>{sig.nombre}</div>
             </div>
             {sig.esRezago && <span className="pill pill-warn" style={{ flexShrink: 0 }}><IconRefresh size={12} />Repaso</span>}
@@ -48,55 +51,55 @@ function VistaInicio({ irA, openSkill, abrirPractica, tw }) {
           <p style={{ fontSize: 15, color: 'var(--ink-2)', margin: '0 0 20px', lineHeight: 1.5 }}>{sig.desc}</p>
           <div style={{ marginTop: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-              <span className="eyebrow" style={{ fontSize: 10 }}>Tu dominio de esta skill</span>
+              <span className="eyebrow" style={{ fontSize: 10 }}>{kids ? 'Qué tan bien te sale' : 'Tu dominio de esta skill'}</span>
               <span className="mono" style={{ fontSize: 12 }}>{sig.dominio}%</span>
             </div>
             <Progress value={sig.dominio} tone="var(--primary)" />
             <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
               <button className="btn btn-violet" onClick={() => abrirPractica(sig.id, 'inicio')}>
-                <IconPlay size={14} />Practicar {sig.mins} min
+                <IconPlay size={14} />{kids ? '¡A jugar!' : `Practicar ${sig.mins} min`}
               </button>
-              <button className="btn btn-secondary" onClick={() => openSkill(sig.id)}>Ver la lección</button>
+              <button className="btn btn-secondary" onClick={() => openSkill(sig.id)}>{kids ? 'Ver cómo' : 'Ver la lección'}</button>
             </div>
           </div>
         </div>
 
         {/* Dominio general */}
         <div className="card card-lg" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-          <div className="eyebrow" style={{ alignSelf: 'flex-start' }}>Tu dominio · {ESTUDIANTE.nivelLabel}</div>
+          <div className="eyebrow" style={{ alignSelf: 'flex-start' }}>{kids ? '¡Cuánto has aprendido!' : `Tu dominio · ${ESTUDIANTE.nivelLabel}`}</div>
           <div style={{ margin: '18px 0 8px' }}>
             <Ring value={ESTUDIANTE.dominioGeneral} size={150} tone="var(--primary)">
               <div className="display" style={{ fontSize: 44, lineHeight: 1 }}>{ESTUDIANTE.dominioGeneral}<span style={{ fontSize: 18, color: 'var(--muted)' }}>%</span></div>
-              <div className="eyebrow" style={{ fontSize: 9 }}>dominado</div>
+              <div className="eyebrow" style={{ fontSize: 9 }}>{kids ? 'aprendido' : 'dominado'}</div>
             </Ring>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, color: 'var(--accent)', fontWeight: 500 }}>
-            <IconCheck size={14} />{ESTADISTICAS.rezagoRecuperado} temas de rezago recuperados
+            <IconCheck size={14} />{ESTADISTICAS.skillsDominadas} {kids ? 'temas ganados 🏅' : 'skills dominadas'}
           </div>
-          <a className="btn btn-ghost" onClick={() => irA('progreso')} style={{ marginTop: 14 }}>Ver progreso <IconArrow size={14} /></a>
+          <a className="btn btn-ghost" onClick={() => irA('progreso')} style={{ marginTop: 14 }}>{kids ? 'Ver mis premios' : 'Ver progreso'} <IconArrow size={14} /></a>
         </div>
       </div>
 
       {/* Accesos rápidos */}
       <div className="grid stack-sm" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 8 }}>
-        <AccesoCard tint="course-his" Icon={IconBrain} title="Pregúntale al Tutor IA"
-          body="Te explica paso a paso, sin darte la respuesta de golpe." cta="Abrir tutor" onClick={() => irA('tutor')} />
-        <AccesoCard tint="course-quim" Icon={IconPulse} title="Haz tu diagnóstico"
-          body="Ubica tu nivel real y detecta tus huecos en minutos." cta="Empezar" onClick={() => irA('diagnostico')} />
-        <AccesoCard tint="course-bio" Icon={IconRoute} title="Revisa tu ruta"
-          body="Mira todo tu camino: lo que dominas y lo que sigue." cta="Ver ruta" onClick={() => irA('ruta')} />
+        <AccesoCard tint="course-his" Icon={IconBrain} title={kids ? 'Pregúntale a Ayudín' : 'Pregúntale al Tutor IA'}
+          body={kids ? 'Te ayuda con dibujos y pasitos, sin regañar.' : 'Te explica paso a paso, sin darte la respuesta de golpe.'} cta={kids ? 'Abrir Ayudín' : 'Abrir tutor'} onClick={() => irA('tutor')} />
+        <AccesoCard tint="course-quim" Icon={IconPulse} title={kids ? 'Juego para conocerte' : 'Haz tu diagnóstico'}
+          body={kids ? 'Unas preguntas para saber por dónde empezar.' : 'Ubica tu nivel real y detecta tus huecos en minutos.'} cta="Empezar" onClick={() => irA('diagnostico')} />
+        <AccesoCard tint="course-bio" Icon={IconRoute} title={kids ? 'Mi mapa' : 'Revisa tu ruta'}
+          body={kids ? 'Mira tu camino y lo que sigue por descubrir.' : 'Mira todo tu camino: lo que dominas y lo que sigue.'} cta={kids ? 'Ver mapa' : 'Ver ruta'} onClick={() => irA('ruta')} />
       </div>
 
       {/* Áreas */}
       <div style={{ marginTop: 36, marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div>
-          <div className="eyebrow">Áreas de matemáticas</div>
-          <div className="display" style={{ fontSize: 30, marginTop: 6 }}>Cómo vas por tema</div>
+          <div className="eyebrow">{kids ? 'Tus temas' : 'Áreas de matemáticas'}</div>
+          <div className="display" style={{ fontSize: 30, marginTop: 6 }}>{kids ? 'Cómo vas' : 'Cómo vas por tema'}</div>
         </div>
         <a className="btn btn-ghost" onClick={() => irA('progreso')}>Ver todo <IconArrow size={14} /></a>
       </div>
       <div className="card card-flush">
-        {areasTop.map((a, i) => (
+        {areas.map((a, i) => (
           <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 22px', borderTop: i ? '1px solid var(--line)' : 'none' }}>
             <Glyph color={a.color} size={38} radius={10}><IconDivide size={18} /></Glyph>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -130,97 +133,83 @@ function AccesoCard({ tint, Icon, title, body, cta, onClick }) {
 // ─────────────────────────────────────────────────────────────────────
 // MI RUTA
 // ─────────────────────────────────────────────────────────────────────
-function VistaRuta({ openSkill, tw }) {
-  const dominados = todosLosSkills().filter(s => s.estado === 'dominado').length;
-  const total = todosLosSkills().length;
+function VistaRuta({ openSkill, irA, cambiarNivel, tw }) {
+  const modo = modoActivo();
+  const kids = modo === 'kids';
+  const ruta = rutaActiva();
+  const skills = todosLosSkills();
+  const dominados = skills.filter(s => s.estado === 'dominado').length;
 
   return (
     <div className="view">
-      <SectionTitle eyebrow="Tu ruta personalizada"
-        title={<>Tu camino a <span className="serif-italic">tu nivel</span>.</>}
-        subtitle={`Primero cerramos tu rezago, luego avanzamos a ${ESTUDIANTE.nivelLabel}. Llevas ${dominados} de ${total} skills.`}
-        right={<button className="btn btn-secondary" onClick={() => tw && null}><IconPulse size={14} />Rehacer diagnóstico</button>}
+      <SectionTitle eyebrow={kids ? 'Mi mapa' : 'Tu ruta personalizada'}
+        title={kids ? <>Mi <span className="serif-italic">mapa</span> de aventuras.</> : <>Tu camino a <span className="serif-italic">tu nivel</span>.</>}
+        subtitle={kids ? `Avanza de estrella en estrella. Llevas ${dominados} temas ganados.` : `Primero cerramos tu rezago, luego avanzamos a ${ESTUDIANTE.nivelLabel}. Llevas ${dominados} de ${skills.length} skills.`}
+        right={<button className="btn btn-secondary" onClick={() => irA('diagnostico')}><IconPulse size={14} />{kids ? 'Juego inicial' : 'Rehacer diagnóstico'}</button>}
       />
 
-      {/* Mapa de niveles */}
+      {/* Mapa de niveles — tócalos para cambiar TODO */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+        <div className="eyebrow">Cambia de nivel · se adapta todo</div>
+        <a className="btn btn-ghost" style={{ padding: '4px 8px' }} onClick={() => irA('niveles')}>Ver detalle <IconArrow size={13} /></a>
+      </div>
       <div className="grid stack-sm" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 32 }}>
         {ETAPAS.map(e => {
-          const activa = e.nombre === ESTUDIANTE.etapa;
+          const activa = e.id === ESTADO.nivel;
           return (
-            <div key={e.id} className="card" style={{ padding: 16, borderColor: activa ? 'var(--primary)' : 'var(--line)' }}>
+            <a key={e.id} className="card nivel-card" data-on={activa ? '1' : '0'} style={{ padding: 16 }} onClick={() => !activa && cambiarNivel(e.id)}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Glyph color={e.color} size={32} radius={9}>
-                  {e.id === 'prees' ? <IconShapes size={15} /> : e.id === 'prim' ? <IconDivide size={15} /> : e.id === 'sec' ? <IconFx size={15} /> : <IconChart size={15} />}
-                </Glyph>
-                {activa && <span className="pill pill-primary" style={{ fontSize: 10 }}>Aquí vas</span>}
+                <Glyph color={e.color} size={32} radius={9}><span style={{ fontSize: 16 }}>{e.emoji}</span></Glyph>
+                {activa ? <span className="pill pill-primary" style={{ fontSize: 10 }}>Aquí vas</span> : <IconArrow size={14} style={{ color: 'var(--faint)' }} />}
               </div>
               <div style={{ fontSize: 14.5, fontWeight: 600, marginTop: 12 }}>{e.nombre}</div>
-              <div className="mono" style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{e.grados}</div>
-              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8, lineHeight: 1.4 }}>{e.desc}</div>
-            </div>
+              <div className="mono" style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{e.grados} · modo {e.modo === 'kids' ? 'niños' : 'estudiante'}</div>
+            </a>
           );
         })}
       </div>
 
-      {/* Camino */}
+      {/* Camino de la ruta activa */}
       <div style={{ maxWidth: 720 }}>
-        {RUTA.map((u, ui) => (
+        {ruta.map((u, ui) => (
           <div key={u.id} style={{ marginBottom: 30 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <span className="eyebrow" style={{ fontSize: 11 }}>Unidad {ui + 1}</span>
-                  {u.esRezago && <span className="pill pill-warn" style={{ fontSize: 10 }}><IconRefresh size={11} />Repaso · cierra rezago</span>}
-                </div>
-                <div className="display" style={{ fontSize: 26, marginTop: 4 }}>{u.unidad}</div>
-                <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>{u.origen} · {u.resumen}</div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span className="eyebrow" style={{ fontSize: 11 }}>Unidad {ui + 1}</span>
+                {u.esRezago && <span className="pill pill-warn" style={{ fontSize: 10 }}><IconRefresh size={11} />Repaso · cierra rezago</span>}
               </div>
+              <div className="display" style={{ fontSize: 26, marginTop: 4 }}>{u.unidad}</div>
+              <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>{u.origen} · {u.resumen}</div>
             </div>
             <div>
               {u.skills.map((s, si) => (
-                <SkillNodo key={s.id} skill={s} primero={si === 0} ultimo={si === u.skills.length - 1}
-                  onOpen={() => s.estado !== 'bloqueado' && openSkill(s.id)} />
+                <SkillNodo key={s.id} skill={s} ultimo={si === u.skills.length - 1} onOpen={() => s.estado !== 'bloqueado' && openSkill(s.id)} />
               ))}
             </div>
           </div>
         ))}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0 0 6px', color: 'var(--muted)' }}>
-          <div style={{ width: 24, height: 24, borderRadius: 999, border: '1.5px dashed var(--line-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Sparkle size={12} />
-          </div>
-          <span style={{ fontSize: 13 }}>Cuando domines lo anterior, la IA generará tus siguientes unidades.</span>
+          <div style={{ width: 24, height: 24, borderRadius: 999, border: '1.5px dashed var(--line-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Sparkle size={12} /></div>
+          <span style={{ fontSize: 13 }}>{kids ? 'Cuando ganes estos, aparecen más aventuras. ✨' : 'Cuando domines lo anterior, la IA generará tus siguientes unidades.'}</span>
         </div>
       </div>
     </div>
   );
 }
 
-function SkillNodo({ skill, primero, ultimo, onOpen }) {
+function SkillNodo({ skill, ultimo, onOpen }) {
   const s = skill;
   const bloqueado = s.estado === 'bloqueado';
   const tone = s.estado === 'dominado' ? 'var(--accent)' : s.estado === 'en-progreso' ? 'var(--primary)' : bloqueado ? 'var(--line-2)' : 'var(--ink)';
-  const nodo = (
-    <div style={{
-      width: 34, height: 34, borderRadius: 999, flexShrink: 0,
-      background: s.estado === 'dominado' ? 'var(--accent)' : 'var(--surface)',
-      border: `2px solid ${tone}`, color: s.estado === 'dominado' ? '#fff' : tone,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      boxShadow: s.estado === 'en-progreso' ? '0 0 0 4px var(--primary-soft)' : 'none',
-    }}>
-      {s.estado === 'dominado' ? <IconCheck size={16} /> : bloqueado ? <IconLock size={14} /> : <IconPlay size={13} />}
-    </div>
-  );
   return (
     <div style={{ display: 'flex', gap: 16, alignItems: 'stretch' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        {nodo}
+        <div style={{ width: 34, height: 34, borderRadius: 999, flexShrink: 0, background: s.estado === 'dominado' ? 'var(--accent)' : 'var(--surface)', border: `2px solid ${tone}`, color: s.estado === 'dominado' ? '#fff' : tone, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: s.estado === 'en-progreso' ? '0 0 0 4px var(--primary-soft)' : 'none' }}>
+          {s.estado === 'dominado' ? <IconCheck size={16} /> : bloqueado ? <IconLock size={14} /> : <IconPlay size={13} />}
+        </div>
         {!ultimo && <div style={{ flex: 1, width: 2, background: 'var(--line)', margin: '2px 0' }} />}
       </div>
-      <a onClick={onOpen} className="card" style={{
-        flex: 1, marginBottom: 12, padding: '14px 18px', cursor: 'default',
-        opacity: bloqueado ? 0.65 : 1, display: 'flex', alignItems: 'center', gap: 14,
-        transition: 'border-color .15s, transform .12s',
-      }}
+      <a onClick={onOpen} className="card" style={{ flex: 1, marginBottom: 12, padding: '14px 18px', cursor: 'default', opacity: bloqueado ? 0.65 : 1, display: 'flex', alignItems: 'center', gap: 14, transition: 'border-color .15s, transform .12s' }}
         onMouseEnter={(e) => { if (!bloqueado) { e.currentTarget.style.borderColor = 'var(--line-2)'; e.currentTarget.style.transform = 'translateX(2px)'; } }}
         onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.transform = 'none'; }}>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -239,7 +228,7 @@ function SkillNodo({ skill, primero, ultimo, onOpen }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// SKILL (lección + intro a la práctica)
+// SKILL (lección)
 // ─────────────────────────────────────────────────────────────────────
 function VistaSkill({ skillId, goBack, abrirPractica, openSkill }) {
   const s = skillById(skillId);
@@ -250,8 +239,7 @@ function VistaSkill({ skillId, goBack, abrirPractica, openSkill }) {
   const skills = todosLosSkills();
   const idx = skills.findIndex(x => x.id === s.id);
   const prev = idx > 0 ? skills[idx - 1] : null;
-  const next = idx < skills.length - 1 ? skills[idx + 1] : null;
-
+  const next = idx >= 0 && idx < skills.length - 1 ? skills[idx + 1] : null;
   const objetivos = [
     `Entender la idea clave de "${s.nombre.toLowerCase()}".`,
     'Resolver problemas paso a paso con apoyo del tutor IA.',
@@ -264,10 +252,9 @@ function VistaSkill({ skillId, goBack, abrirPractica, openSkill }) {
 
       <div className="grid stack-sm" style={{ gridTemplateColumns: '1.6fr 1fr', gap: 20 }}>
         <div>
-          {/* Encabezado */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
             <span className="pill pill-ghost mono" style={{ fontSize: 11 }}>{s.etapa}</span>
-            <span className="pill pill-ghost mono" style={{ fontSize: 11 }}>{uni.unidad}</span>
+            {uni && <span className="pill pill-ghost mono" style={{ fontSize: 11 }}>{uni.unidad}</span>}
             {s.esRezago && <span className="pill pill-warn" style={{ fontSize: 11 }}><IconRefresh size={11} />Repaso</span>}
           </div>
           <h1 className="display" style={{ fontSize: 'clamp(34px, 4vw, 50px)', margin: 0, lineHeight: 1.05 }}>{s.nombre}</h1>
@@ -277,18 +264,15 @@ function VistaSkill({ skillId, goBack, abrirPractica, openSkill }) {
             <div style={{ display: 'flex', gap: 12, marginTop: 18, padding: '14px 16px', background: 'var(--warn-soft)', borderRadius: 12 }}>
               <IconBulb size={18} style={{ color: 'var(--warn)', flexShrink: 0, marginTop: 1 }} />
               <div style={{ fontSize: 13.5, color: 'var(--ink-2)' }}>
-                <strong style={{ color: 'var(--warn)' }}>Por qué estás aquí:</strong> en tu diagnóstico detectamos un hueco de {s.etapa}. Cerrarlo hará que el álgebra de tu grado te salga mucho más fácil.
+                <strong style={{ color: 'var(--warn)' }}>Por qué estás aquí:</strong> detectamos un hueco de {s.etapa}. Cerrarlo hará que lo de tu grado te salga mucho más fácil.
               </div>
             </div>
           )}
 
-          {/* Idea clave + ejemplo */}
           {ejemplo && (
             <div className="card card-lg" style={{ marginTop: 20 }}>
               <div className="eyebrow">Idea clave · ejemplo resuelto</div>
-              <div style={{ fontSize: 20, fontFamily: 'var(--font-serif)', marginTop: 12, marginBottom: 4 }}>
-                <Expr>{ejemplo.enunciado}</Expr>
-              </div>
+              <div style={{ fontSize: 20, fontFamily: 'var(--font-serif)', marginTop: 12, marginBottom: 4 }}><Expr>{ejemplo.enunciado}</Expr></div>
               <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {ejemplo.pasos.map((p, i) => (
                   <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
@@ -303,7 +287,6 @@ function VistaSkill({ skillId, goBack, abrirPractica, openSkill }) {
             </div>
           )}
 
-          {/* Objetivos */}
           <div className="card card-lg" style={{ marginTop: 18 }}>
             <div className="eyebrow">Qué vas a lograr</div>
             <ul style={{ margin: '14px 0 0', padding: 0, listStyle: 'none' }}>
@@ -316,7 +299,6 @@ function VistaSkill({ skillId, goBack, abrirPractica, openSkill }) {
           </div>
         </div>
 
-        {/* Sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div className="card card-lg" style={{ textAlign: 'center' }}>
             <div className="eyebrow" style={{ textAlign: 'left' }}>Tu dominio</div>
@@ -333,9 +315,7 @@ function VistaSkill({ skillId, goBack, abrirPractica, openSkill }) {
             ) : (
               <>
                 <div style={{ fontSize: 13.5, color: 'var(--muted)', margin: '8px 0 14px' }}>≈ {s.mins} min · el tutor IA te acompaña.</div>
-                <button className="btn btn-violet" style={{ width: '100%', justifyContent: 'center' }} onClick={() => abrirPractica(s.id, 'skill')}>
-                  <IconPlay size={14} />Empezar práctica
-                </button>
+                <button className="btn btn-violet" style={{ width: '100%', justifyContent: 'center' }} onClick={() => abrirPractica(s.id, 'skill')}><IconPlay size={14} />Empezar práctica</button>
               </>
             )}
           </div>
@@ -359,4 +339,77 @@ function VistaSkill({ skillId, goBack, abrirPractica, openSkill }) {
   );
 }
 
-Object.assign(window, { VistaInicio, VistaRuta, VistaSkill });
+// ─────────────────────────────────────────────────────────────────────
+// NIVELES — cómo cambia todo según la etapa (+ cambiar de nivel)
+// ─────────────────────────────────────────────────────────────────────
+function VistaNiveles({ cambiarNivel, irA }) {
+  const CAMBIOS = {
+    kids: ['Botones y texto más grandes', 'Dibujos, emojis y premios', 'Lenguaje corto y amable'],
+    teen: ['Más información por pantalla', 'Pasos y notación formal', 'Ritmo y metas más altas'],
+  };
+  return (
+    <div className="view">
+      <SectionTitle eyebrow="Niveles · K a prepa"
+        title={<>Un Aula para <span className="serif-italic">cada edad</span>.</>}
+        subtitle="Elige tu nivel y la app se adapta: contenido, ruta, diagnóstico, lenguaje y hasta cómo se ve."
+      />
+
+      <div style={{ display: 'flex', gap: 12, padding: '14px 18px', background: 'var(--surface-2)', borderRadius: 14, marginBottom: 24 }}>
+        <Sparkle size={18} />
+        <div style={{ fontSize: 14, color: 'var(--ink-2)' }}>
+          <strong>Dos modos.</strong> Preescolar y primaria usan el <strong>modo niños</strong> (grande, visual, con premios). Secundaria y prepa usan el <strong>modo estudiante</strong> (más información y ritmo). Cambia abajo y verás transformarse toda la app.
+        </div>
+      </div>
+
+      <div className="grid stack-sm" style={{ gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        {ETAPAS.map(e => {
+          const activo = e.id === ESTADO.nivel;
+          const perfil = PERFILES[e.id];
+          const esKids = e.modo === 'kids';
+          return (
+            <div key={e.id} className="card card-lg nivel-card" data-on={activo ? '1' : '0'} style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <Glyph color={e.color} size={52} radius={15}><span style={{ fontSize: 26 }}>{e.emoji}</span></Glyph>
+                <span className="modo-badge" style={{ background: esKids ? 'var(--warn-soft)' : 'var(--primary-soft)', color: esKids ? 'var(--warn)' : 'var(--primary-ink)' }}>
+                  {esKids ? '🧸 Modo niños' : '🧭 Modo estudiante'}
+                </span>
+              </div>
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 30, marginTop: 14 }}>{e.nombre}</div>
+              <div className="mono" style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{e.grados}</div>
+              <div style={{ fontSize: 14, color: 'var(--ink-2)', marginTop: 10 }}>{e.desc}</div>
+
+              <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {CAMBIOS[e.modo].map((c, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, color: 'var(--muted)' }}>
+                    <IconCheck size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />{c}
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ marginTop: 16, padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span className="avatar" style={{ width: 34, height: 34, fontSize: 12 }}>{perfil.iniciales}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>Perfil demo: {perfil.nombre}, {perfil.edad} años</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>{perfil.nivelLabel}</div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 'auto', paddingTop: 16 }}>
+                {activo
+                  ? <button className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center' }} disabled><IconCheck size={14} />Estás en este nivel</button>
+                  : <button className="btn btn-violet" style={{ width: '100%', justifyContent: 'center' }} onClick={() => cambiarNivel(e.id)}>Entrar como {perfil.nombre} <IconArrow size={14} /></button>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 20, color: 'var(--muted)', fontSize: 13, justifyContent: 'center' }}>
+        <IconRoute size={15} style={{ color: 'var(--primary)' }} />
+        Al cambiar de nivel se regenera tu ruta y tu diagnóstico. Puedes volver cuando quieras.
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { VistaInicio, VistaRuta, VistaSkill, VistaNiveles });
